@@ -14,6 +14,7 @@ import { ScoringService } from './scoringService'
 import { MessagingService } from './messagingService'
 import { ProxyService } from './proxyService'
 import { ReportService } from './reportService'
+import { CustomizerService } from './customizerService'
 
 /**
  * Central dependency injection container for all connector services.
@@ -39,6 +40,7 @@ export class ServiceRegistry {
     public messaging: MessagingService
     public reports: ReportService
     public proxy: ProxyService
+    public customizer: CustomizerService
 
     /**
      * Creates a new ServiceRegistry, initializing all services in dependency order.
@@ -59,6 +61,9 @@ export class ServiceRegistry {
         const logConfig = operationContext ? { ...config, operationContext } : config
         this.log = context.logService ?? new LogService(logConfig)
         this.locks = context.lockService ?? new InMemoryLockService(this.log)
+        // Retains the SDK context: `customizedOperation` is injected onto it by the ISC runtime
+        // when a customizer is attached, and is otherwise absent.
+        this.customizer = context.customizerService ?? new CustomizerService(context, this.log)
         this.client = context.connectionService ?? new ClientService(this.config, this.log)
         this.log.setQueue(this.client.getQueue())
 
@@ -80,7 +85,15 @@ export class ServiceRegistry {
         const commandType = context.commandType as StandardCommand | undefined
         this.attributes =
             context.attributesService ??
-            new AttributeService(this.config, this.schemas, this.sources, this.log, this.locks, commandType)
+            new AttributeService(
+                this.config,
+                this.schemas,
+                this.sources,
+                this.log,
+                this.locks,
+                commandType,
+                this.customizer
+            )
 
         // Initialize FusionService last (depends on multiple services)
         this.fusion =

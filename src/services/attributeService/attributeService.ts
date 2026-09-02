@@ -24,8 +24,14 @@ export type RenderContext = Record<string, any>
 import { v4 as uuidv4 } from 'uuid'
 import { assert } from '../../utils/assert'
 import { SourceService } from '../sourceService'
-import { COMPOUND_KEY_UNIQUE_ID_ATTRIBUTE, FUSION_STATE_CONFIG_PATH } from './constants'
-import { AttributeMappingConfig } from './types'
+import {
+    COMPOUND_KEY_UNIQUE_ID_ATTRIBUTE,
+    CUSTOMIZER_OP_AFTER_UNIQUE_GENERATION,
+    CUSTOMIZER_OP_BEFORE_UNIQUE_GENERATION,
+    FUSION_STATE_CONFIG_PATH,
+} from './constants'
+import { AttributeMappingConfig, UniqueGenerationCustomizerPayload } from './types'
+import { CustomizerService, NoopCustomizerService } from '../customizerService'
 import { processAttributeMapping, buildAttributeMappingConfig } from './helpers'
 import { isValidAttributeValue } from '../../utils/attributes'
 import { StateWrapper } from './stateWrapper'
@@ -93,6 +99,8 @@ export class AttributeService {
      * @param log - Logger instance
      * @param locks - Lock service for thread-safe unique Define generation
      * @param commandType - The current SDK command type (affects key generation behavior)
+     * @param customizer - Customized-operation dispatcher for the unique-generation hooks;
+     *                     defaults to a no-op so callers without an SDK context behave as before
      */
     constructor(
         config: FusionConfig,
@@ -100,7 +108,8 @@ export class AttributeService {
         private sourceService: SourceService,
         private log: LogService,
         private locks: LockService,
-        _commandType?: StandardCommand
+        _commandType?: StandardCommand,
+        private customizer: CustomizerService = new NoopCustomizerService()
     ) {
         this.attributeMaps = config.attributeMaps
         this.attributeMerge = config.attributeMerge
@@ -905,24 +914,151 @@ export class AttributeService {
             const registeredValues = this.getUniqueValues(definition.name)
             const maxAttempts = this.maxAttempts ?? defaults.maxAttempts
 
-            if (definition.useIncrementalCounter) {
-                return await this.generateWithIncrementalCounter(
-                    definition,
-                    fusionAccount,
-                    context,
-                    registeredValues,
-                    maxAttempts
-                )
+            const override = await this.requestCustomizerValue(
+                CUSTOMIZER_OP_BEFORE_UNIQUE_GENERATION,
+                definition,
+                fusionAccount,
+                context,
+                registeredValues
+            )
+            if (override !== undefined) {
+                registeredValues.add(override)
+                return override
             }
 
-            return await this.generateWithCollisionDisambiguation(
+            const generated = definition.useIncrementalCounter
+                ? await this.generateWithIncrementalCounter(
+                      definition,
+                      fusionAccount,
+                      context,
+                      registeredValues,
+                      maxAttempts
+                  )
+                : await this.generateWithCollisionDisambiguation(
+                      definition,
+                      fusionAccount,
+                      context,
+                      registeredValues,
+                      maxAttempts
+                  )
+
+            if (generated === undefined) return undefined
+
+            const replacement = await this.requestCustomizerValue(
+                CUSTOMIZER_OP_AFTER_UNIQUE_GENERATION,
                 definition,
                 fusionAccount,
                 context,
                 registeredValues,
-                maxAttempts
+                generated
             )
+            if (replacement === undefined || replacement === generated) return generated
+
+            // The generators already reserved `generated`; move the reservation to the override.
+            registeredValues.delete(generated)
+            registeredValues.add(replacement)
+            return replacement
         })
+    }
+
+    /**
+     * Offer a unique-attribute generation decision to an attached customizer.
+     *
+     * Returns an override value, or undefined to continue with normal generation — which covers
+     * every failure mode: no customizer attached, no handler registered, the handler threw, or
+     * it returned an empty/non-string value. A customizer must never be able to abort an
+     * aggregation.
+     *
+     * Once a handler answers it is the authoritative source for the value, so the response is
+     * deliberately NOT second-guessed:
+     * - Collision detection does not apply. Reusing a registered value is a legitimate outcome
+     *   (it is logged), because overriding what the connector would have produced is the whole
+     *   point of the hook.
+     * - {@link applyUniqueValueOutputTransforms} is not applied — silently case-folding the
+     *   value or truncating it to `maxLength` would rewrite the handler's decision.
+     *
+     * @param generatedValue - For the After hook, the connector's own value; used only to
+     *                         recognize an unchanged response
+     */
+    private async requestCustomizerValue(
+        operationId: string,
+        definition: UniqueAttributeDefinition,
+        fusionAccount: FusionAccount,
+        context: RenderContext,
+        registeredValues: Set<string>,
+        generatedValue?: string
+    ): Promise<string | undefined> {
+        // Cheap exit before building a payload — the common case is no customizer at all.
+        if (!this.customizer.isAvailable) return undefined
+
+        const payload: UniqueGenerationCustomizerPayload = {
+            attributeName: definition.name,
+            definition,
+            account: {
+                name: fusionAccount.name,
+                nativeIdentity: fusionAccount.nativeIdentityOrUndefined,
+                sourceName: fusionAccount.sourceName,
+                identityId: fusionAccount.identityId,
+                originSource: fusionAccount.originSource,
+                originAccountId: fusionAccount.originAccountId,
+                isIdentity: fusionAccount.isIdentity,
+                needsReset: fusionAccount.needsReset,
+                attributes: { ...fusionAccount.attributes },
+            },
+            renderContext: this.toSerializableRenderContext(context),
+            registeredValueCount: registeredValues.size,
+            ...(generatedValue !== undefined ? { generatedValue } : {}),
+        }
+
+        const response = await this.customizer.invoke<unknown>(operationId, payload)
+        const candidate = this.readCustomizerValue(response)
+        if (candidate === undefined) return undefined
+
+        if (!isValidAttributeValue(candidate)) {
+            this.log.warn(
+                `${operationId} returned an empty value for attribute ${definition.name}, using generated value`
+            )
+            return undefined
+        }
+
+        // A customizer is the authoritative source once it answers, so a value that is already
+        // registered is still honoured — reuse can be exactly what the handler intends. Surface
+        // it at info level so the deliberate duplicate is visible in the logs.
+        if (candidate !== generatedValue && registeredValues.has(candidate)) {
+            this.log.info(
+                `${operationId} reused already-registered value "${candidate}" for attribute ${definition.name}`
+            )
+        }
+
+        return candidate
+    }
+
+    /**
+     * Read the override out of a customizer response. Handlers conventionally return the mutated
+     * input, so `{ value }` is the natural shape; a bare string is accepted for convenience.
+     */
+    private readCustomizerValue(response: unknown): string | undefined {
+        if (typeof response === 'string') return response
+        if (response && typeof response === 'object') {
+            const value = (response as { value?: unknown }).value
+            if (typeof value === 'string') return value
+        }
+        return undefined
+    }
+
+    /**
+     * Shallow copy of the Velocity context with function values removed, so it can cross the
+     * customizer boundary. Drops `$isUnique` (installed per definition in
+     * {@link processUniqueDefinition}); the remaining members are already plain snapshots, so
+     * no deep clone is taken — `accounts` and `sources` can be large.
+     */
+    private toSerializableRenderContext(context: RenderContext): Record<string, any> {
+        const serializable: Record<string, any> = {}
+        for (const [key, value] of Object.entries(context)) {
+            if (typeof value === 'function') continue
+            serializable[key] = value
+        }
+        return serializable
     }
 
     /**

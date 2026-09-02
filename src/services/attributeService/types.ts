@@ -1,4 +1,4 @@
-import { AttributeMergeMode } from '../../model/config'
+import { AttributeMergeMode, UniqueAttributeDefinition } from '../../model/config'
 
 // ============================================================================
 // Type Definitions — Attribute Service
@@ -51,4 +51,45 @@ export const ATTR_OPS_NONE: AttributeOperations = {
     refreshMapping: false,
     refreshDefinition: false,
     resetDefinition: false,
+}
+
+// ============================================================================
+// Customizer Hook Payloads
+// ============================================================================
+
+/** Serializable projection of the account a unique value is being generated for. */
+export type UniqueGenerationCustomizerAccount = {
+    name?: string
+    nativeIdentity?: string
+    sourceName?: string
+    identityId?: string
+    originSource?: string
+    originAccountId?: string
+    isIdentity: boolean
+    needsReset: boolean
+    /** Current fusion attributes, including any unique values already generated this run. */
+    attributes: Record<string, any>
+}
+
+/**
+ * Input sent to the `IdentityFusion:BeforeUniqueGeneration` and
+ * `IdentityFusion:AfterUniqueGeneration` customized operations.
+ *
+ * A handler overrides the value by returning either a plain string or this payload with a
+ * `value` property set. Returning it unchanged leaves connector behavior untouched.
+ */
+export type UniqueGenerationCustomizerPayload = {
+    /** Which unique attribute is being generated — switch on this in the handler. */
+    attributeName: string
+    /** The configured definition driving generation. */
+    definition: UniqueAttributeDefinition
+    account: UniqueGenerationCustomizerAccount
+    /** Velocity variables available to the expression, with function values removed. */
+    renderContext: Record<string, any>
+    /** How many values are already taken for this attribute. The full set is not sent. */
+    registeredValueCount: number
+    /** `AfterUniqueGeneration` only: the value the connector generated. */
+    generatedValue?: string
+    /** Set by the handler to override the value. */
+    value?: string
 }

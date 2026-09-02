@@ -276,7 +276,7 @@ For detailed field-by-field guidance and usage patterns, see the [usage guides](
 | Topic                                                                                    | Description                                                                                                  |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | [Map](docs/guides/map.md)                                                                | Attribute mapping, merging, and consolidation from multiple sources.                                         |
-| [Define](docs/guides/define.md)                                                          | Attribute definitions (Velocity computed attributes, unique identifiers, UUIDs, counters).                   |
+| [Define](docs/guides/define.md)                                                          | Attribute definitions (Velocity computed attributes, unique identifiers, UUIDs, counters, customizer hooks). |
 | [Match](docs/guides/match.md)                                                            | Detect and resolve potential matching identities using one or more sources.                                  |
 | [Source configuration](docs/guides/source-configuration.md)                              | In-depth guide on source settings, scope, aggregation timing, and correlation modes.                         |
 | [Migration from previous Identity Fusion](docs/guides/migration-from-previous-fusion.md) | Migrate from an earlier Identity Fusion version: add the old source as managed, align schemas, then migrate. |
@@ -391,6 +391,10 @@ The documentation site is built with MkDocs and published from the `main` branch
 ---
 
 ## Changelog
+
+### Unreleased
+
+- Added SaaS Connectivity customizer hooks around unique attribute generation: `IdentityFusion:BeforeUniqueGeneration` and `IdentityFusion:AfterUniqueGeneration`. A customizer becomes the authoritative source for the values it returns, and the hooks are inert when no customizer is attached. See [docs/guides/define.md](docs/guides/define.md).
 
 ### 2.1.7 - 2026-06-22
 

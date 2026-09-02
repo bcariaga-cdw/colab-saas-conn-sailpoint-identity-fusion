@@ -254,6 +254,67 @@ Use regular unique attribute schemas to define attributes you may want to change
 
 ---
 
+## Customizer hooks for unique generation
+
+Unique generation exposes two [SaaS Connectivity customized operations](https://developer.sailpoint.com/docs/connectivity/saas-connectivity/customizers/customized-operation), so a customizer can supply unique values that Velocity cannot express — a lookup against an external system, for example.
+
+| Operation identifier                    | Fires                                     | Effect of returning a value          |
+| --------------------------------------- | ----------------------------------------- | ------------------------------------ |
+| `IdentityFusion:BeforeUniqueGeneration` | Before the connector generates a value    | Generation is skipped entirely       |
+| `IdentityFusion:AfterUniqueGeneration`  | After the connector generated a value     | Replaces the generated value         |
+
+Both identifiers are **stable** — the attribute being generated arrives in the payload as `attributeName`, so one handler serves every configured unique attribute.
+
+### Writing a handler
+
+Customizers are a **separate artifact** from the connector, built with `createConnectorCustomizer()` and attached to the source. Nothing in this connector registers handlers.
+
+```typescript
+import { createConnectorCustomizer } from '@sailpoint/connector-sdk'
+
+export const customizer = async () =>
+    createConnectorCustomizer().customizedOperation('IdentityFusion:BeforeUniqueGeneration', async (context, input) => {
+        if (input.attributeName === 'uid') {
+            input.value = `${input.account.attributes.firstName}.${input.account.attributes.lastName}`.toLowerCase()
+        }
+        return input
+    })
+```
+
+Set `value` on the input and return it (returning a bare string also works). Return the input untouched — or omit the handler — and the connector generates the value as usual.
+
+### Payload
+
+```typescript
+{
+    attributeName: string          // which unique attribute is being generated
+    definition: {...}              // the configured unique attribute definition
+    account: {
+        name, nativeIdentity, sourceName, identityId,
+        originSource, originAccountId, isIdentity, needsReset,
+        attributes                 // current fusion attributes
+    }
+    renderContext: {...}           // Velocity variables, function values removed
+    registeredValueCount: number   // how many values are already taken
+    generatedValue?: string        // AfterUniqueGeneration only
+}
+```
+
+The full set of used values is **not** sent — it can hold tens of thousands of entries per attribute. Use `$isUnique` in the expression, or `registeredValueCount`, if you need a sense of scale.
+
+### Rules and limits
+
+Once a handler returns a value it is the **authoritative source** for that attribute, and the connector does not second-guess it:
+
+- **Collision detection does not apply to a returned value.** If it is already in use the connector keeps it anyway and logs the reuse at info level. Deliberately reusing a value — deriving several accounts from one authoritative identifier, for example — is a supported outcome. Uniqueness is your handler's responsibility; use `$isUnique` in the expression instead if you want the connector to enforce it.
+- **Transforms are not applied** to a returned value. `case`, `trim`, `spaces`, `normalize`, and `maxLength` shape connector-generated values only.
+- **Empty or non-string returns are ignored**, falling back to normal generation.
+- **Handler errors never fail an aggregation.** They are logged and treated as "no override".
+- **The hooks are inert without a customizer.** `customizedOperation` is injected onto the context by the ISC runtime only when a customizer is attached to the source, so these hooks do nothing during local `spcx run` and cost nothing when unused.
+- The hooks fire once per account per unique attribute, inside the per-attribute generation lock. A slow handler will slow aggregation proportionally.
+
+---
+
 ## Preventing Fusion account creation (empty nativeIdentity skip pattern)
 
 One can purposely generate an **empty** `nativeIdentity` in conjunction with the **"Skip accounts with a missing identifier"** processing option to prevent specific managed accounts or identities from generating Fusion accounts.
