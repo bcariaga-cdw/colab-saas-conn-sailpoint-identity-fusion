@@ -375,7 +375,7 @@
                 {
                     "type": "section",
                     "sectionTitle": "Processing Control",
-                    "sectionHelpMessage": "<strong>Control account maintenance.</strong><br><br><strong>History limits:</strong> Cap the number of audit history messages stored per account.<br><br><strong>Delete when empty:</strong> Remove the Fusion account if all its underlying source accounts are deleted.<br><br><strong>Skip missing targets:</strong> Ignore source accounts missing a mapped native identity attribute.<br><br>See also: <a href=\"https://fernando-delosrios-sp.github.io/colab-saas-conn-sailpoint-identity-fusion/use-guides/configuration/configuring-sources-and-scope/\">Configuring sources and scope</a>.",
+                    "sectionHelpMessage": "<strong>Control account maintenance.</strong><br><br><strong>History limits:</strong> Cap the number of audit history messages stored per account.<br><br><strong>Delete when empty:</strong> Remove the Fusion account if all its underlying source accounts are deleted.<br><br><strong>Skip missing targets:</strong> Ignore source accounts missing a mapped native identity attribute.<br><br><strong>Promote first found managed account:</strong> When enabled, set mainAccount to the first live managed account while the origin is not a current contributor, and clear mainAccount when the origin is a current contributor again.<br><br>See also: <a href=\"https://fernando-delosrios-sp.github.io/colab-saas-conn-sailpoint-identity-fusion/use-guides/configuration/configuring-sources-and-scope/\">Configuring sources and scope</a>.",
                     "items": [
                         {
                             "key": "maxHistoryMessages",
@@ -398,6 +398,13 @@
                             "type": "toggle",
                             "required": false,
                             "helpKey": "Skip accounts that are missing a unique identity value."
+                        },
+                        {
+                            "key": "promoteMainAccountWhenOriginMissing",
+                            "label": "Promote first found managed account to main account when origin account is missing",
+                            "type": "toggle",
+                            "required": false,
+                            "helpKey": "While enabled, set mainAccount to the first live managed account while the origin is not a current contributor, and clear mainAccount when the origin is a current contributor again."
                         },
                         {
                             "key": "cascadeAggregationEnabled",

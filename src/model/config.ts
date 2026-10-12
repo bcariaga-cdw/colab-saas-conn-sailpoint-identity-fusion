@@ -258,6 +258,12 @@ export interface SourcesSection {
 export interface ProcessingControlSection {
     deleteEmpty: boolean
     skipAccountsWithMissingId: boolean
+    /**
+     * While on, `processFusionAccount` sets `mainAccount` to the first live managed account
+     * when the origin is not a current contributor, and clears it when the origin is a current
+     * contributor again. Off when the key is absent.
+     */
+    promoteMainAccountWhenOriginMissing: boolean
     maxHistoryMessages: number
     cascadeAggregationEnabled?: boolean
 }

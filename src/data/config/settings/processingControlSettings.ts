@@ -11,13 +11,18 @@ export const connectorSpecInitialValues = {
 export const runtimeDefaults = {
     deleteEmpty: false,
     skipAccountsWithMissingId: false,
+    promoteMainAccountWhenOriginMissing: false,
     maxHistoryMessages: connectorSpecInitialValues.maxHistoryMessages,
 } as const
 
 export function readSettings(raw: Record<string, unknown>): ProcessingControlSection {
     return {
         deleteEmpty: extractBoolean(raw, 'deleteEmpty') ?? runtimeDefaults.deleteEmpty,
-        skipAccountsWithMissingId: extractBoolean(raw, 'skipAccountsWithMissingId') ?? runtimeDefaults.skipAccountsWithMissingId,
+        skipAccountsWithMissingId:
+            extractBoolean(raw, 'skipAccountsWithMissingId') ?? runtimeDefaults.skipAccountsWithMissingId,
+        promoteMainAccountWhenOriginMissing:
+            extractBoolean(raw, 'promoteMainAccountWhenOriginMissing') ??
+            runtimeDefaults.promoteMainAccountWhenOriginMissing,
         maxHistoryMessages: (raw.maxHistoryMessages as number | undefined) ?? runtimeDefaults.maxHistoryMessages,
         cascadeAggregationEnabled: raw.cascadeAggregationEnabled as boolean | undefined,
     }

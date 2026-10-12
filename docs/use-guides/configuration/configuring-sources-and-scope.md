@@ -189,6 +189,7 @@ Conditional PAT scopes apply: `idn:task-management:read` for **before** mode; `s
 | **Maximum history messages** | Audit history entries per Fusion account | 10 | Older entries discarded |
 | **Delete accounts with no managed accounts left?** | Remove Fusion account when all source accounts are gone | Off | Useful for leaver cleanup |
 | **Skip accounts with missing unique ID?** | Skip managed source accounts without the Fusion identity attribute | Off | Logged for review |
+| **Promote first found managed account to main account when origin account is missing** | While on, set `mainAccount` to the first live managed account while the origin is not a current contributor, and clear `mainAccount` when the origin is a current contributor again | Off | `originAccount` stays unchanged. Turning the toggle off later leaves the current `mainAccount` in place |
 
 **Force attribute refresh on next aggregation?** is under **Advanced Settings → Developer Settings**. It recalculates Normal-type attributes for one run only, then auto-disables. Unique attributes refresh only on account creation or activation.
 

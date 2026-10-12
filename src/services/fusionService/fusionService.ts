@@ -6,6 +6,7 @@ import { FormService } from '../formService'
 import { IdentityService } from '../identityService'
 import { SourceService } from '../sourceService'
 import { FusionAccount } from '../../model/account'
+import { IDENTITIES_SOURCE_NAME } from '../../model/fusionAccount'
 import { MappingService } from '../mappingService'
 import { DefinitionService } from '../definitionService'
 import { MatchingService } from '../matchingService'
@@ -40,7 +41,7 @@ import { AggregationTracker } from './aggregationTracker'
 import { logFusionDecisionApplied } from './decisionLogging'
 
 import { AttributeOperations } from '../definitionService/types'
-import { getManagedAccountKeyFromAccount } from '../../model/managedAccountKey'
+import { getManagedAccountKeyFromAccount, isCompositeManagedAccountKey } from '../../model/managedAccountKey'
 import { addFusionAccountLinkedKeysToIndex, isManagedAccountLinkedInFusion } from '../../model/managedAccountLink'
 import { StatusEntitlement } from '../../model/statusEntitlement'
 import { trimStr } from '../../utils/safeRead'
@@ -52,6 +53,8 @@ import { MatchOutcomeDispatcher, MatchSweepMode } from '../matchingService/match
 import { sourceHasReviewers, sourceShouldEnterMatchScoring } from '../matchingService/reviewerAvailability'
 import { AccountAssembly } from '../accountAssembly'
 import { FusionRun } from '../../model/fusionRun'
+import { FusionAttribute } from '../../data/schema'
+import { getManagedAccountSnapshotKey } from '../../utils/velocityAccountSnapshot'
 
 // ============================================================================
 // FusionService Class
@@ -562,6 +565,7 @@ export class FusionService {
                 this.config.forceAttributeRefresh
         )
         fusionAccount.setNeedsReset(resetDefinition)
+        this.applyPromoteMainAccountWhenOriginMissing(fusionAccount)
 
         let defineStats: { definitionsEvaluated: number; definitionsSkipped: number } | undefined
         await this.accountAssembly.applyAttributeProcessing(fusionAccount, {
@@ -620,6 +624,143 @@ export class FusionService {
         }
         this.log.debug(`Applied identity layer for ${fusionAccount.name}: identityId=${identityId}`)
         return mergeDecision
+    }
+
+    /**
+     * While the Processing Control toggle is on, point `mainAccount` at the first live managed
+     * account when the origin is not a current contributor, and clear it when the origin is a
+     * current contributor again. Runs after the managed-account layer and before Map.
+     */
+    private applyPromoteMainAccountWhenOriginMissing(fusionAccount: FusionAccount): void {
+        if (this.config.promoteMainAccountWhenOriginMissing !== true) return
+
+        const originAbsent = this.originIsNotCurrentContributor(fusionAccount)
+        if (originAbsent === undefined) return
+
+        const next = originAbsent ? this.firstLiveManagedAccountKey(fusionAccount) : undefined
+        const previous = trimStr(fusionAccount.getStringAttribute(FusionAttribute.MainAccount))
+        if (previous === next) return
+
+        if (next) {
+            fusionAccount.attributes[FusionAttribute.MainAccount] = next
+        } else {
+            delete fusionAccount.attributes[FusionAttribute.MainAccount]
+        }
+        fusionAccount.setNeedsRefresh(true)
+        fusionAccount.collections.addHistoryMessage(
+            `Set mainAccount from ${previous ?? 'unset'} to ${next ?? 'cleared'}`
+        )
+    }
+
+    /**
+     * Managed-origin absence is the origin key missing from `accounts` after blend and prune.
+     * Identity-origin absence is a resolved out-of-scope origin. Unresolved scope is not absence.
+     */
+    private originIsNotCurrentContributor(fusionAccount: FusionAccount): boolean | undefined {
+        if (fusionAccount.fromIdentity) {
+            if (fusionAccount.originIdentityInScope === true) return false
+            if (fusionAccount.originIdentityInScope === false) return true
+            return undefined
+        }
+        const originKey = fusionAccount.originAccountId
+        if (!originKey) return true
+        return !fusionAccount.accountIdsSet.has(originKey)
+    }
+
+    /**
+     * First managed-source account still linked, in configured source order, then blend order
+     * within a source. The identity bag is not a candidate. Snapshot order is used when this
+     * run materialized managed snapshots; otherwise linked account keys are ordered the same way.
+     */
+    private firstLiveManagedAccountKey(fusionAccount: FusionAccount): string | undefined {
+        const linked = fusionAccount.accountIdsSet
+        const identityId = trimStr(fusionAccount.identityId)
+        if (this.hasMaterializedManagedSnapshots(fusionAccount)) {
+            return this.firstLinkedSnapshotKey(fusionAccount, linked, identityId)
+        }
+        return this.firstLinkedAccountKey(fusionAccount, linked, identityId)
+    }
+
+    private hasMaterializedManagedSnapshots(fusionAccount: FusionAccount): boolean {
+        for (const [sourceName, snapshots] of fusionAccount.attributeBag.sources) {
+            if (sourceName === IDENTITIES_SOURCE_NAME) continue
+            if (snapshots.length > 0) return true
+        }
+        return false
+    }
+
+    private firstLinkedSnapshotKey(
+        fusionAccount: FusionAccount,
+        linked: ReadonlySet<string>,
+        identityId: string | undefined
+    ): string | undefined {
+        const sources = fusionAccount.attributeBag.sources
+        const ordered: string[] = []
+        const seen = new Set<string>()
+        const pushSource = (sourceName: string): void => {
+            if (sourceName === IDENTITIES_SOURCE_NAME || seen.has(sourceName)) return
+            seen.add(sourceName)
+            for (const snapshot of sources.get(sourceName) ?? []) {
+                const key = getManagedAccountSnapshotKey(snapshot)
+                if (!this.isLiveManagedAccountKey(key, linked, identityId)) continue
+                ordered.push(key)
+            }
+        }
+
+        for (const sourceConfig of this.config.sources ?? []) {
+            pushSource(sourceConfig.name)
+        }
+        for (const sourceName of sources.keys()) {
+            pushSource(sourceName)
+        }
+        return ordered[0]
+    }
+
+    private firstLinkedAccountKey(
+        fusionAccount: FusionAccount,
+        linked: ReadonlySet<string>,
+        identityId: string | undefined
+    ): string | undefined {
+        const keysBySource = new Map<string, string[]>()
+        const sourceSeen: string[] = []
+        for (const key of linked) {
+            if (!this.isLiveManagedAccountKey(key, linked, identityId)) continue
+            const sourceName = this.sourceNameForManagedKey(fusionAccount, key) ?? ''
+            const keys = keysBySource.get(sourceName)
+            if (keys) {
+                keys.push(key)
+            } else {
+                keysBySource.set(sourceName, [key])
+                sourceSeen.push(sourceName)
+            }
+        }
+
+        const ordered: string[] = []
+        const emitted = new Set<string>()
+        for (const sourceConfig of this.config.sources ?? []) {
+            const keys = keysBySource.get(sourceConfig.name)
+            if (!keys) continue
+            ordered.push(...keys)
+            emitted.add(sourceConfig.name)
+        }
+        for (const sourceName of sourceSeen) {
+            if (emitted.has(sourceName)) continue
+            ordered.push(...(keysBySource.get(sourceName) ?? []))
+        }
+        return ordered[0]
+    }
+
+    private isLiveManagedAccountKey(key: string, linked: ReadonlySet<string>, identityId: string | undefined): boolean {
+        if (!key || !linked.has(key) || !isCompositeManagedAccountKey(key)) return false
+        if (identityId && key === identityId) return false
+        return true
+    }
+
+    private sourceNameForManagedKey(fusionAccount: FusionAccount, key: string): string | undefined {
+        return (
+            trimStr(fusionAccount.collections.managedAccountInfo.get(key)?.source.name) ??
+            trimStr(this.run.getManagedAccountInfo(key)?.sourceName)
+        )
     }
 
     private async setOriginIdentityInScopeIfNeeded(

@@ -10,7 +10,7 @@ For the full phase narrative, see [Account list](../operations/account-list.md).
 | --- | --- | --- |
 | 1 Setup | `PHASE 1 Setup` | Source Settings (sources, reset flags), Advanced → Developer Settings |
 | 2 Fetch | `PHASE 2 Fetch` | Source Settings (scope, sources), Attribute Matching → Review (forms) |
-| 3 Refresh | `PHASE 3 Refresh` | Attribute Mapping, Attribute Definition, correlation mode |
+| 3 Refresh | `PHASE 3 Refresh` | Attribute Mapping, Attribute Definition, correlation mode, Processing Control `promoteMainAccountWhenOriginMissing` |
 | 4 Process | `PHASE 4 Process` | Attribute Matching (Match rules, review), Source types, correlation |
 | 5 Output | `PHASE 5 Output` | Source Settings → Processing Control, Developer Settings |
 | Epilogue | `EPILOGUE report` | Attribute Matching → Review (`fusionReportOnAggregation`) |
@@ -57,6 +57,12 @@ Identities and correlated managed accounts form the Match **baseline**. See [Glo
 | --- | --- | --- | --- |
 | **aggregationMode: before** | Source Settings → per source | Setup (pre-aggregation poll) | Task polling; `idn:task-management:read` scope required |
 | **aggregationMode: delayed** | Source Settings → per source | Output `schedule-aggregations` | Delayed workflow scheduling |
+
+## Processing control
+
+| Setting | Config menu | Phase / step | Behavior |
+| --- | --- | --- | --- |
+| **Promote first found managed account to main account when origin account is missing** (`promoteMainAccountWhenOriginMissing`) | Source Settings → Processing Control | Refresh `processFusionAccount`, including single-account read | Off when the key is absent. While on, sets `mainAccount` to the first live managed account before Map when the origin is not a current contributor, and clears `mainAccount` before Map when the origin is a current contributor again. |
 
 ## Review and reporting
 

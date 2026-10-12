@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates u
 
 ---
 
+## 2026-10-12 · v2.2.0
+
+### ✨ New Features
+
+- **Optional handoff of main account when the origin is not a current contributor** — Processing Control adds **Promote first found managed account to main account when origin account is missing** (`promoteMainAccountWhenOriginMissing`). The toggle is off when the key is absent, so existing sources keep their current `mainAccount`. While it is on, Refresh sets `mainAccount` to the first live managed account before Map when the origin is not a current contributor, and clears `mainAccount` when the origin is a current contributor again, including a value an operator stored. `originAccount` and the Main account, Origin account, and First found merge rules stay unchanged.
+
+---
+
 ## 2026-10-07 · v2.2.0
 
 ### ✨ New Features
