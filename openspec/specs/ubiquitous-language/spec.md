@@ -784,6 +784,41 @@ The ubiquitous-language glossary SHALL define **Skip Fusion accounts with duplic
 - **THEN** it SHALL contain a **Skip Fusion accounts with duplicate names** entry
 - **AND** the entry SHALL state its config key is `skipDuplicateFusionAccounts`
 
+### Requirement: Glossary defines first live managed account
+
+The ubiquitous-language glossary SHALL define **first live managed account** as the first managed-source account still linked on the Fusion account, in configured source order, then blend order within a source. The identity bag SHALL NOT be a first live managed account. The entry SHALL NOT use this name for the First found merge strategy, for the origin account, or for `mainAccount`.
+
+#### Scenario: Glossary entry for first live managed account
+
+- **GIVEN** a reader consults the ubiquitous-language glossary
+- **WHEN** they look up which managed account is chosen when the origin is not a current contributor
+- **THEN** it SHALL contain a **first live managed account** entry
+- **AND** the entry SHALL state the order is configured source order, then blend order within a source
+- **AND** the entry SHALL state the identity bag is not one
+
+### Requirement: Glossary defines origin not a current contributor
+
+The ubiquitous-language glossary SHALL define **origin not a current contributor** as follows. For a managed-origin Fusion account, the origin key is not in `accounts` after this run's blend and prune. For an identity-origin Fusion account, the origin identity is resolved out of scope. An unresolved scope check SHALL NOT be this state. A missing origin snapshot when refresh was skipped SHALL NOT be this state. The entry SHALL NOT use this name for an uncorrelated key in `missing-accounts`, or for designated snapshot unavailable.
+
+#### Scenario: Glossary entry for origin not a current contributor
+
+- **GIVEN** a reader consults the ubiquitous-language glossary
+- **WHEN** they look up when the origin no longer contributes to the Fusion account
+- **THEN** it SHALL contain an **origin not a current contributor** entry
+- **AND** the entry SHALL distinguish a managed-origin key missing from `accounts` from an identity-origin identity resolved out of scope
+- **AND** the entry SHALL exclude an unresolved scope check and a skipped refresh whose origin snapshot was not loaded
+
+### Requirement: Glossary Processing Control entry includes the origin-absent main account handoff
+
+The ubiquitous-language glossary **Processing Control** entry SHALL remain the Source Settings section for account maintenance. It SHALL keep history retention, empty-account deletion, and missing-identifier behavior, and SHALL also name the origin-absent main account handoff toggle (`promoteMainAccountWhenOriginMissing`). This SHALL NOT add a new section name.
+
+#### Scenario: Processing Control entry names the handoff toggle
+
+- **GIVEN** a reader consults the ubiquitous-language glossary
+- **WHEN** they look up Processing Control
+- **THEN** the **Processing Control** entry SHALL list history retention, empty-account deletion, missing-identifier behavior, and the origin-absent main account handoff
+- **AND** the entry SHALL name `promoteMainAccountWhenOriginMissing`
+
 ## Canonical Terms
 
 ### Account taxonomy
@@ -1039,7 +1074,9 @@ Configuration is organized into menus and sections in the connector source in IS
 | **Scope** | The section defining which ISC identities participate in Fusion processing. Controls **Include identities in the scope?** and **Identity Scope Query**. |
 | **Identity Scope Query** | An ISC search-syntax filter that narrows which identities are included in processing. Use `*` for all identities or filters like `attributes.cloudLifecycleState:active`. |
 | **Sources** | The section listing configured managed sources that feed account data into Fusion. Each source has its own type, aggregation mode, correlation mode, and filters. |
-| **Processing Control** | The section managing account maintenance: history retention, empty account deletion, and missing-identifier behavior. |
+| **Processing Control** | The section managing account maintenance: history retention, empty-account deletion, missing-identifier behavior, and the origin-absent main account handoff (`promoteMainAccountWhenOriginMissing`). |
+| **First live managed account** | The first managed-source account still linked on the Fusion account, in configured source order, then blend order within a source. The identity bag is not a first live managed account. This name is not the First found merge strategy, the origin account, or `mainAccount`. |
+| **Origin not a current contributor** | For a managed-origin Fusion account, the origin key is not in `accounts` after this run's blend and prune. For an identity-origin Fusion account, the origin identity is resolved out of scope. An unresolved scope check is not this state. A missing origin snapshot when refresh was skipped is not this state. This name is not an uncorrelated key in `missing-accounts`, and not designated snapshot unavailable. |
 | **Attribute Mapping Settings** | The top-level configuration menu for the Map step. Contains Attribute Mapping Definitions. |
 | **Attribute Mapping Definitions** | The section configuring how source attributes are mapped and merged into the Fusion account schema. Controls the default merge strategy and per-attribute mapping rules. |
 | **Main account merge** | A Map strategy that reads mapped values from the `mainAccount` snapshot when that key is found in the current run, otherwise from the origin snapshot. Stored as `mainAccount`. It does not fall through to another account when the selected snapshot lacks a value. |
