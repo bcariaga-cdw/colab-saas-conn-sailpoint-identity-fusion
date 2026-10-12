@@ -42,6 +42,7 @@ export const switchCase = (str: string, caseType: 'lower' | 'upper' | 'capitaliz
             return str.toUpperCase()
         case 'capitalize':
             return str
+                .toLowerCase()
                 .split(' ')
                 .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ')
@@ -172,4 +173,3 @@ export const padNumber = (number: number, length: number): string => {
     const numStr = number.toString()
     return numStr.length < length ? numStr.padStart(length, '0') : numStr
 }
-
