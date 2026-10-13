@@ -93,6 +93,59 @@ describe('FusionService — aggregation', () => {
     })
 
     describe('getISCAccount', () => {
+        it('keeps managedKey as output key when identity attribute drifted on an existing Fusion account', async () => {
+            const managedKey = 'NG000402'
+            const driftedId = 'd7f36e82-c053-4816-bb83-9d7d22f0f8b6'
+            const fusionAccount = FusionAccount.fromFusionAccount({
+                nativeIdentity: managedKey,
+                id: 'eeba0657405c4316a4cde69699478843',
+                name: 'Mahmoud AlFuttaim',
+                attributes: {
+                    id: driftedId,
+                    name: 'Mahmoud AlFuttaim',
+                },
+            } as unknown as Account)
+
+            Object.defineProperty(ctx.mockSchemas, 'fusionIdentityAttribute', {
+                get: vi.fn(() => 'id'),
+                configurable: true,
+            })
+            ctx.mockDefinitionService.applyDisplayAttributeOverride.mockReturnValue(undefined)
+            // Simulates current getSimpleKey behavior: key follows the drifted identity attribute.
+            ctx.mockDefinitionService.getSimpleKey.mockReturnValue({ simple: { id: driftedId } })
+            ctx.mockSchemas.getFusionAttributeSubset.mockImplementation((attrs) => ({ ...attrs }))
+
+            const output = await ctx.fusionService.getISCAccount(fusionAccount)
+
+            expect(output?.key).toEqual({ simple: { id: managedKey } })
+            expect(output?.attributes?.id).toBe(managedKey)
+            expect(fusionAccount.managedKey).toBe(managedKey)
+        })
+
+        it('still uses getSimpleKey for new Managed accounts whose managedKey is the composite origin key', async () => {
+            FusionAccount.configure(ctx.mockConfig)
+            const compositeManagedKey = '6d05a773d063435491ea732c1bc12d0e::fe12b42c-acd3-49a3-9cce-16d96894bb67'
+            const uniqueId = 'NG000403'
+            const fusionAccount = FusionAccount.fromManagedAccount({
+                id: '16fb04e7b9414aa7b7c71bbb54726911',
+                name: 'New Managed',
+                sourceId: '6d05a773d063435491ea732c1bc12d0e',
+                sourceName: 'Non-Employee Risk Management+ (People)',
+                nativeIdentity: 'fe12b42c-acd3-49a3-9cce-16d96894bb67',
+                attributes: { id: uniqueId, name: 'New Managed' },
+            } as unknown as Account)
+
+            ctx.mockDefinitionService.applyDisplayAttributeOverride.mockReturnValue(undefined)
+            ctx.mockDefinitionService.getSimpleKey.mockReturnValue({ simple: { id: uniqueId } })
+            ctx.mockSchemas.getFusionAttributeSubset.mockImplementation((attrs) => ({ ...attrs }))
+
+            const output = await ctx.fusionService.getISCAccount(fusionAccount)
+
+            expect(fusionAccount.managedKey).toBe(compositeManagedKey)
+            expect(output?.key).toEqual({ simple: { id: uniqueId } })
+            expect(output?.attributes?.id).toBe(uniqueId)
+        })
+
         it('emits identity and uuid alongside key for platform object input validation', async () => {
             const key = { simple: { id: 'NG000025' } }
             const fusionAccount = FusionAccount.fromIdentity({ id: 'NG000025', name: 'Ada Wong' } as IdentityDocument)

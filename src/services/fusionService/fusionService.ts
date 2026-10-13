@@ -1,11 +1,11 @@
 import { AccountV2025 as Account, IdentityDocument } from 'sailpoint-api-client'
-import { StdAccountListOutput, StandardCommand } from '@sailpoint/connector-sdk'
+import { SimpleKey, StdAccountListOutput, StandardCommand } from '@sailpoint/connector-sdk'
 import { FusionConfig, SourceType } from '../../model/config'
 import { LogService } from '../logService'
 import { FormService } from '../formService'
 import { IdentityService } from '../identityService'
 import { SourceService } from '../sourceService'
-import { FusionAccount } from '../../model/account'
+import { FusionAccount, FusionAccountKind } from '../../model/account'
 import { IDENTITIES_SOURCE_NAME } from '../../model/fusionAccount'
 import { MappingService } from '../mappingService'
 import { DefinitionService } from '../definitionService'
@@ -1184,7 +1184,9 @@ export class FusionService {
      * then syncs collection attributes and applies the schema subset filter.
      *
      * Key / managedKey handling:
-     * - The output key is always `key.simple.id = fusionAccount.managedKey`.
+     * - Existing Fusion accounts (reloaded from ISC): `key.simple.id = fusionAccount.managedKey`,
+     *   and the fusion identity attribute is realigned to that managedKey when it has drifted.
+     * - New Managed/Identity accounts: key comes from `getSimpleKey` (fusion identity attribute).
      * - The managedKey is set by the factory method and never changed afterwards.
      * - When `skipAccountsWithMissingId` is enabled and the identity attribute is empty,
      *   getSimpleKey returns undefined and the account is omitted from the output. This
@@ -1238,10 +1240,29 @@ export class FusionService {
     /**
      * Enforce display attribute overrides and generate/assign a key for interim accounts.
      * Returns true when the account is ready for output, false when it should be skipped.
+     *
+     * Existing Fusion accounts (reloaded from ISC) always emit `managedKey` as the output key
+     * and realign the fusion identity attribute to it. That keeps single-account refresh from
+     * creating a duplicate when the identity attribute has drifted away from nativeIdentity.
+     * New Managed/Identity accounts still take their key from {@link DefinitionService.getSimpleKey}.
      */
     private setCoreSchemaAttributes(fusionAccount: FusionAccount): boolean {
         // Enforce hosting identity name display override if correlated
         this.definitionService.applyDisplayAttributeOverride(fusionAccount)
+
+        const managedKey = trimStr(fusionAccount.managedKey)
+        const isExistingFusionAccount =
+            fusionAccount.type === FusionAccountKind.Fusion &&
+            Object.keys(fusionAccount.previousAttributes ?? {}).length > 0
+
+        if (isExistingFusionAccount && managedKey) {
+            const { fusionIdentityAttribute } = this.schemas
+            if (fusionAccount.attributes[fusionIdentityAttribute] !== managedKey) {
+                fusionAccount.attributes[fusionIdentityAttribute] = managedKey
+            }
+            fusionAccount.setKey(SimpleKey(managedKey))
+            return true
+        }
 
         // Generate and assign key for interim accounts (key postponed from processIdentity/processFusionIdentityDecision)
         const key = fusionAccount.key ?? this.definitionService.getSimpleKey(fusionAccount)
