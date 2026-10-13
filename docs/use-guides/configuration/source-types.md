@@ -110,7 +110,7 @@ Keeps orphan Match and correlation behavior. Machine accounts (`isMachine=true`)
 Scores machine accounts that have no [established owner identity](../../glossary.md#source-types) (a non-empty `ownerIdentity.id`), including accounts that are already correlated or already linked on a Fusion account. Human accounts, and machine accounts that already have an owner, are skipped. Skipped accounts are not disabled.
 
 1. Match scores the eligible machine account.
-2. **Match found** — automatic merge or a reviewer selection writes the selected identity to `ownerIdentity`. The correlated identity (`identityId`) is unchanged, and the machine account is not attached to a Fusion account.
+2. **Match found** — automatic merge or a reviewer selection writes the selected identity to `ownerIdentity` (`PATCH /machine-accounts/{id}`; requires `idn:mis-account:manage` on the connector PAT — see [ISC PAT scopes](../../reference/pat-scopes.md)). The correlated identity (`identityId`) is unchanged, and the machine account is not attached to a Fusion account.
 3. **No match**, including a reviewer no-match — the account is dropped and no owner identity is written.
 
 Review forms for this mode ask the reviewer to choose an owner identity. They do not describe a merge or a correlation.

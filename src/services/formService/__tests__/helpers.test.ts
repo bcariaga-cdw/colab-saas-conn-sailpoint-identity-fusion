@@ -2,12 +2,14 @@ import {
     buildCandidateList,
     buildFormName,
     calculateExpirationDate,
+    createAutomaticMergeDecision,
     getFormOwner,
     resolveCandidateDisplayName,
     resolveIdentitiesSelectLabel,
 } from '../helpers'
 import { countIdentityCandidateFusionMatches } from '../../matchingService/matchingHelpers'
 import { MatchCandidateType } from '../../matchingService/types'
+import { SourceType } from '../../../model/config'
 
 describe('formService helpers', () => {
     describe('countIdentityCandidateFusionMatches', () => {
@@ -283,6 +285,34 @@ describe('formService helpers', () => {
         it('should throw an error if fusionSourceOwner is undefined', () => {
             const sourceService = { fusionSourceOwner: undefined } as any
             expect(() => getFormOwner(sourceService)).toThrow()
+        })
+    })
+
+    describe('createAutomaticMergeDecision', () => {
+        const fusionAccount = {
+            name: 'nhi.ward',
+            sourceName: 'NHI',
+            isMachine: true,
+        } as any
+        const account = {
+            id: 'isc-acct-1',
+            name: 'nhi.ward',
+            sourceId: 'src-nhi',
+            nativeIdentity: 'nhi.ward',
+            isMachine: true,
+        } as any
+
+        it('sets sourceType on the synthetic decision', () => {
+            const decision = createAutomaticMergeDecision(
+                fusionAccount,
+                account,
+                'identity-9',
+                SourceType.Orphan
+            )
+
+            expect(decision.sourceType).toBe(SourceType.Orphan)
+            expect(decision.automaticMerge).toBe(true)
+            expect(decision.identityId).toBe('identity-9')
         })
     })
 })

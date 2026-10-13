@@ -37,15 +37,19 @@ export class NdjsonRecordingStore implements RecordingStore {
 
     appendApiCall(entry: ApiLogEntry): void {
         const getter = entry.getter ?? entry.api
-        const line =
-            JSON.stringify({
-                api: entry.api,
-                getter,
-                method: entry.method,
-                args: entry.args,
-                response: entry.response,
-                timestamp: entry.timestamp,
-            }) + '\n'
+        const payload: Record<string, unknown> = {
+            api: entry.api,
+            getter,
+            method: entry.method,
+            args: entry.args,
+            timestamp: entry.timestamp,
+        }
+        if (entry.error != null) {
+            payload.error = entry.error
+        } else {
+            payload.response = entry.response
+        }
+        const line = JSON.stringify(payload) + '\n'
         this.enqueueWrite(this.apiLogPath, line)
         this.apiLogEntryCount++
     }

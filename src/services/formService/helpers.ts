@@ -10,6 +10,7 @@ import { getFusionReportAccountLabel } from '../fusionService/helpers'
 import { compareMatchesForForm } from '../matchingService/matchingHelpers'
 import { Candidate } from './types'
 import { internalConfig } from '../../data/config'
+import { SourceType } from '../../model/config'
 import { readString, trimStr } from '../../utils/safeRead'
 
 // ============================================================================
@@ -23,12 +24,14 @@ import { readString, trimStr } from '../../utils/safeRead'
  * @param fusionAccount - The fusion account being merged
  * @param account - The managed account
  * @param identityId - The target identity ID
+ * @param sourceType - Managed source type (drives report stats and decision processing)
  * @returns Synthetic FusionDecision for automatic merge
  */
 export function createAutomaticMergeDecision(
     fusionAccount: FusionAccount,
     account: Account,
-    identityId: string
+    identityId: string,
+    sourceType: SourceType
 ): FusionDecision {
     const accountKey = getManagedAccountKeyFromAccount(account)
     assert(accountKey, 'Managed account missing composite key for automatic merge decision')
@@ -49,6 +52,7 @@ export function createAutomaticMergeDecision(
         comments: 'Automatically merged: combined score met or exceeded threshold',
         finished: true,
         automaticMerge: true,
+        sourceType,
     }
 }
 

@@ -4,11 +4,12 @@ Identity Fusion NG calls a fixed set of Identity Security Cloud APIs. Grant your
 
 ## Full PAT scope set
 
-Use these thirteen scopes for a deployment that uses Map, Define, Match, review forms, email notifications, reverse correlation, identity schema discovery, and aggregation control:
+Use these fourteen scopes for a deployment that uses Map, Define, Match, review forms, email notifications, reverse correlation, identity schema discovery, aggregation control, and Orphan Ownership mode:
 
 ```
 idn:accounts:manage
 idn:accounts-state:manage
+idn:mis-account:manage
 idn:identity:read
 sp:search:read
 idn:sources:manage
@@ -30,6 +31,7 @@ idn:identity-profile-attribute:manage
 | --- | --- |
 | `idn:accounts:manage` | List fusion and managed accounts; correlate managed accounts to identities (`PATCH /accounts/{id}`) |
 | `idn:accounts-state:manage` | Disable managed accounts on the Orphan **Disable non-matching accounts** path via `POST /accounts/{id}/disable` |
+| `idn:mis-account:manage` | Set machine-account owner identity on Orphan **Ownership mode** via `PATCH /machine-accounts/{id}` (`ownerIdentity`) |
 | `idn:identity:read` | `GET /identities/{id}` — email address fallback for reviewers and report recipients when Search does not return `emailAddress` |
 | `sp:search:read` | Identity lookups: scope query, fetch by ID/name, aggregation event search |
 | `idn:sources:manage` | List/get/update sources; correlation config; load-accounts aggregation |
@@ -49,6 +51,7 @@ These scopes appear in both the full set and the conditional table because they 
 | Scope | Required when… |
 | --- | --- |
 | `idn:accounts-state:manage` | **Disable non-matching accounts** on an Orphan source |
+| `idn:mis-account:manage` | Orphan **Ownership mode** (`sourceType: orphan` + `orphanProcessingMode: ownership`) |
 | `idn:identity:read` | Match review, aggregation/Fusion report email, or **Owners are global reviewers?** (identity profile fetch for email) |
 | `idn:identity-profile-attribute:read` | **Include identities in the scope?** is on (default) — Discover Schema lists identity attributes. Skip if you already grant `:manage` |
 | `idn:task-management:read` | `aggregationMode: before` is set on any managed source |
@@ -61,7 +64,7 @@ These scopes appear in both the full set and the conditional table because they 
 
 ## Core minimum (Map and Define only)
 
-For a Map/Define side-car deployment with no Match, no email, no reverse correlation, no aggregation control, no orphan disable, and **Include identities in the scope?** set to **No**:
+For a Map/Define side-car deployment with no Match, no email, no reverse correlation, no aggregation control, no orphan disable, no Ownership mode, and **Include identities in the scope?** set to **No**:
 
 ```
 idn:accounts:manage
@@ -82,6 +85,7 @@ flowchart TD
     AUTH --> FORMS[+ forms + workflow scopes]
     FORMS --> EMAIL[+ workflow-execute:external + identity:read]
     BASE --> ORPHAN[+ accounts-state:manage]
+    BASE --> OWNERSHIP[+ mis-account:manage]
     BASE --> BEFORE[+ task-management:read]
     BASE --> DELAY[+ workflow scopes]
     BASE --> REV[+ identity-profile manage]
@@ -96,10 +100,10 @@ Derive least-privilege scopes from an exported Fusion source configuration JSON:
 npm run pat-scopes:recommend -- path/to/source-config.json
 ```
 
-The script inspects managed sources (`aggregationMode`, `correlationMode`, `disableNonMatchingAccounts`), Match rules, review/report settings, identity scope, and global reviewer flags. It prints:
+The script inspects managed sources (`aggregationMode`, `correlationMode`, `disableNonMatchingAccounts`, `orphanProcessingMode`), Match rules, review/report settings, identity scope, and global reviewer flags. It prints:
 
 - **Core minimum** — Map/Define side-car with no extended features
-- **Detected conditionals** — Match, delayed aggregation, reverse correlation, orphan disable, identity schema list, workgroup, and workflow features as applicable
+- **Detected conditionals** — Match, delayed aggregation, reverse correlation, orphan disable, Ownership mode, identity schema list, workgroup, and workflow features as applicable
 
 Export the source config from ISC (Admin → Connections → Sources → your Fusion source → Export) or use a sanitized copy from scenario recordings.
 
@@ -112,7 +116,8 @@ Export the source config from ISC (Admin → Connections → Sources → your Fu
 5. **Identity attribute list** — `GET /identity-attributes` runs during Discover Schema when identities are in scope. That is independent of reverse correlation.
 6. **Identities API** — Identity lookups normally use Search (`sp:search:read`). `GET /identities/{id}` is a fallback for email on reviewers and report recipients.
 7. **Account disable** — `idn:accounts-state:manage` is only for Orphan **Disable non-matching accounts**. Delayed aggregation uses source load-accounts and workflow scopes, not account disable.
-8. **Entitlement list operation** — Does not call ISC APIs; no additional PAT scope beyond source/account reads already listed above. `EntitlementsV2025Api` and `TransformsApi` are loaded on the client and unused.
+8. **Machine-account ownership** — `idn:mis-account:manage` is required for Orphan **Ownership mode** writes (`PATCH /v2025/machine-accounts/{id}`). Assignment mode does not need it. The v2025 operation does not require an experimental header.
+9. **Entitlement list operation** — Does not call ISC APIs; no additional PAT scope beyond source/account reads already listed above. `EntitlementsV2025Api` and `TransformsApi` are loaded on the client and unused.
 
 ## Related configuration
 

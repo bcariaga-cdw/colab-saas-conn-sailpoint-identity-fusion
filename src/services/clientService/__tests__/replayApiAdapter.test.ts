@@ -59,6 +59,50 @@ describe('ReplayApiAdapter', () => {
         expect(result).toEqual({ id: 'f1', status: 'created' })
     })
 
+    it('rejects with the recorded error for a failed write entry', async () => {
+        const entries: ApiLogEntry[] = [
+            {
+                api: 'machineAccounts',
+                method: 'updateMachineAccount',
+                args: [{ id: 'acct-1' }],
+                error: 'Request failed with status code 400 [400: 400.1]',
+                timestamp: '2026-01-01T00:00:00.000Z',
+            },
+        ]
+        const adapter = new ReplayApiAdapter(entries)
+        const machineAccountsApi = adapter.machineAccountsApi as any
+
+        await expect(machineAccountsApi.updateMachineAccount({ id: 'acct-1' })).rejects.toThrow(
+            /recorded API failure.*400\.1/
+        )
+    })
+
+    it('does not treat a failed write as a successful response for a later matching call', async () => {
+        const entries: ApiLogEntry[] = [
+            {
+                api: 'machineAccounts',
+                method: 'updateMachineAccount',
+                args: [{ id: 'acct-1' }],
+                error: 'Request failed with status code 400 [400: 400.1]',
+                timestamp: '2026-01-01T00:00:00.000Z',
+            },
+            {
+                api: 'machineAccounts',
+                method: 'updateMachineAccount',
+                args: [{ id: 'acct-1' }],
+                response: { data: { id: 'acct-1', ownerIdentity: { id: 'id-1' } } },
+                timestamp: '2026-01-01T00:00:01.000Z',
+            },
+        ]
+        const adapter = new ReplayApiAdapter(entries)
+        const machineAccountsApi = adapter.machineAccountsApi as any
+
+        await expect(machineAccountsApi.updateMachineAccount({ id: 'acct-1' })).rejects.toThrow(/recorded API failure/)
+        await expect(machineAccountsApi.updateMachineAccount({ id: 'acct-1' })).resolves.toEqual({
+            data: { id: 'acct-1', ownerIdentity: { id: 'id-1' } },
+        })
+    })
+
     it('throws on second write call when only one was recorded', async () => {
         const entries: ApiLogEntry[] = [
             {

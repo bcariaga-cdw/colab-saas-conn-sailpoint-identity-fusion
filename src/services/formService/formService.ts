@@ -1017,7 +1017,9 @@ export class FormService {
         account: Account,
         identityId: string
     ): FusionDecision {
-        return createAutomaticMergeDecision(fusionAccount, account, identityId)
+        const sourceType =
+            this.sources.getSourceByNameSafe(fusionAccount.sourceName)?.sourceType ?? SourceType.Authoritative
+        return createAutomaticMergeDecision(fusionAccount, account, identityId, sourceType)
     }
 
     /**

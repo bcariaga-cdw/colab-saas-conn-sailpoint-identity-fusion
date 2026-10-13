@@ -567,6 +567,7 @@ export class SourceService {
     /**
      * Sets `ownerIdentity` on a machine account to the selected identity.
      * This updates `ownerIdentity` and does not correlate the account: it does not PATCH `/identityId`.
+     * Uses JSON Patch `add` so a missing/null `ownerIdentity` is created (ISC upsert semantics).
      * The machine-account update operation does not define an experimental header, so none is sent.
      * A failed write is logged and does not fail aggregation. No local owned flag is stored, so the next run retries.
      */
@@ -607,20 +608,28 @@ export class SourceService {
         return trimStr(account.iscAccountId) ?? this.resolveIscAccountIdForManagedKey(account.id)
     }
 
-    private patchMachineAccountOwnerIdentity(
+    private async patchMachineAccountOwnerIdentity(
         id: string,
         ownerIdentity: { type: 'IDENTITY'; id: string }
-    ): Promise<unknown> {
-        return this.client.call(
+    ): Promise<void> {
+        const result = await this.client.call(
             (api) =>
                 api.machineAccounts
                     .updateMachineAccount({
                         id,
-                        requestBody: [{ op: 'replace', path: '/ownerIdentity', value: ownerIdentity }],
+                        // `add` upserts when ownerIdentity is missing/null; `replace` yields 400.1 in that case.
+                        requestBody: [{ op: 'add', path: '/ownerIdentity', value: ownerIdentity }],
                     })
                     .then((response) => response.data),
-            { priority: QueuePriority.LOW, context: 'SourceService>setMachineAccountOwnerIdentity' }
+            {
+                priority: QueuePriority.LOW,
+                context: 'SourceService>setMachineAccountOwnerIdentity',
+                throwOnError: true,
+            }
         )
+        if (result === undefined) {
+            throw new Error(`Machine account owner identity update returned no result for "${id}"`)
+        }
     }
 
     private async findMachineAccountIdByNativeIdentity(account: {

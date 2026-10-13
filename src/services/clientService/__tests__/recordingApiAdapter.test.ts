@@ -58,4 +58,40 @@ describe('RecordingApiAdapter', () => {
             response: { data: [{ id: 'src-1' }], status: 200, statusText: 'OK' },
         })
     })
+
+    it('records rejected API calls with an error field and rethrows', async () => {
+        const recorded: unknown[] = []
+        const failure = Object.assign(new Error('Request failed with status code 400'), {
+            response: { status: 400, data: { detailCode: '400.1', message: 'Illegal update attempt' } },
+        })
+
+        const inner = {
+            config: {} as any,
+            machineAccountsApi: {
+                updateMachineAccount: vi.fn(async () => {
+                    throw failure
+                }),
+            },
+        }
+
+        const adapter = new RecordingApiAdapter(inner as any, (entry) => {
+            recorded.push(entry)
+        })
+
+        await expect(
+            adapter.machineAccountsApi.updateMachineAccount({
+                id: 'acct-1',
+                requestBody: [{ op: 'add', path: '/ownerIdentity', value: { type: 'IDENTITY', id: 'id-1' } }],
+            })
+        ).rejects.toBe(failure)
+
+        await new Promise((r) => setTimeout(r, 0))
+        expect(recorded).toHaveLength(1)
+        expect(recorded[0]).toMatchObject({
+            api: 'machineAccounts',
+            method: 'updateMachineAccount',
+            error: expect.stringContaining('400'),
+        })
+        expect(recorded[0]).not.toHaveProperty('response')
+    })
 })

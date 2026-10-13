@@ -22,6 +22,7 @@ const CORE_MINIMUM = [
 
 const CONDITIONAL = {
     'idn:accounts-state:manage': 'Orphan disable non-matching accounts',
+    'idn:mis-account:manage': 'Orphan Ownership mode (PATCH machine-account ownerIdentity)',
     'idn:identity:read': 'Match review, report email, or global reviewers (GET /identities/{id} for email)',
     'idn:identity-profile-attribute:read': 'Include identities in the scope (Discover Schema lists identity attributes)',
     'idn:task-management:read': 'aggregationMode: before on any managed source',
@@ -89,6 +90,12 @@ function orphanDisableEnabled(sources) {
     return sources.some((s) => s && s.disableNonMatchingAccounts === true)
 }
 
+function orphanOwnershipEnabled(sources) {
+    return sources.some(
+        (s) => s && s.sourceType === 'orphan' && s.orphanProcessingMode === 'ownership'
+    )
+}
+
 function reportEmailEnabled(config) {
     return config.fusionReportOnAggregation === true
 }
@@ -122,6 +129,9 @@ function recommend(configPath) {
     if (orphanDisableEnabled(sources)) {
         addConditional(conditional, reasons, 'idn:accounts-state:manage')
     }
+    if (orphanOwnershipEnabled(sources)) {
+        addConditional(conditional, reasons, 'idn:mis-account:manage')
+    }
     if (beforeAggregationEnabled(sources)) {
         addConditional(conditional, reasons, 'idn:task-management:read')
     }
@@ -151,6 +161,7 @@ function recommend(configPath) {
         !beforeAggregationEnabled(sources) &&
         !reverseCorrelationEnabled(sources) &&
         !orphanDisableEnabled(sources) &&
+        !orphanOwnershipEnabled(sources) &&
         !globalReviewerEnabled(config) &&
         !reportEmailEnabled(config)
 

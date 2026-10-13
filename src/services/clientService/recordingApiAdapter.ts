@@ -9,8 +9,27 @@ export interface ApiLogEntry {
     getter?: string
     method: string
     args: unknown[]
-    response: unknown
+    /** Present on successful calls. Omitted when {@link error} is set. */
+    response?: unknown
+    /** Present when the underlying API call rejected. Omitted on success. */
+    error?: string
     timestamp: string
+}
+
+function formatApiCallError(err: unknown): string {
+    if (err instanceof Error) {
+        const axiosData = (err as { response?: { status?: number; data?: { detailCode?: string; message?: string } } })
+            .response
+        const detail = axiosData?.data?.detailCode ?? axiosData?.data?.message
+        if (axiosData?.status != null && detail) {
+            return `${err.message} [${axiosData.status}: ${detail}]`
+        }
+        if (axiosData?.status != null) {
+            return `${err.message} [${axiosData.status}]`
+        }
+        return err.message
+    }
+    return String(err)
 }
 
 export class RecordingApiAdapter implements IscApiAdapter {
@@ -32,25 +51,41 @@ export class RecordingApiAdapter implements IscApiAdapter {
                 if (typeof original !== 'function') return original
                 return (...args: unknown[]) => {
                     const result = original.apply(realApi, args)
-                    return Promise.resolve(result).then((response) => {
+                    const record = (entry: ApiLogEntry) => {
                         queueMicrotask(() => {
                             try {
-                                this.onApiCall({
-                                    api: apiName,
-                                    getter: apiName,
-                                    method,
-                                    args: args.map(sanitizeApiPayload),
-                                    response: sanitizeApiPayload(response),
-                                    timestamp: new Date().toISOString(),
-                                })
+                                this.onApiCall(entry)
                             } catch (err) {
                                 this.onRecordError?.(
                                     `Failed to record ${apiName}.${method}: ${err instanceof Error ? err.message : String(err)}`
                                 )
                             }
                         })
-                        return response
-                    })
+                    }
+                    return Promise.resolve(result).then(
+                        (response) => {
+                            record({
+                                api: apiName,
+                                getter: apiName,
+                                method,
+                                args: args.map(sanitizeApiPayload),
+                                response: sanitizeApiPayload(response),
+                                timestamp: new Date().toISOString(),
+                            })
+                            return response
+                        },
+                        (err: unknown) => {
+                            record({
+                                api: apiName,
+                                getter: apiName,
+                                method,
+                                args: args.map(sanitizeApiPayload),
+                                error: formatApiCallError(err),
+                                timestamp: new Date().toISOString(),
+                            })
+                            throw err
+                        }
+                    )
                 }
             },
         })

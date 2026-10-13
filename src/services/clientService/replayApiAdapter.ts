@@ -19,7 +19,7 @@ function normalizeApiLogEntry(raw: ApiLogEntry): ApiLogEntry {
 export class ReplayApiAdapter implements IscApiAdapter {
     public readonly config: Configuration
     /** FIFO queues for repeated read calls that share the same stable key. */
-    private readonly readQueues = new Map<string, unknown[]>()
+    private readonly readQueues = new Map<string, ApiLogEntry[]>()
     private readonly readCursors = new Map<string, number>()
     private readonly writeLog: ApiLogEntry[] = []
     private readonly consumedWrites = new Set<number>()
@@ -35,7 +35,7 @@ export class ReplayApiAdapter implements IscApiAdapter {
                 this.writeLog.push(entry)
             } else {
                 const queue = this.readQueues.get(key) ?? []
-                queue.push(entry.response)
+                queue.push(entry)
                 this.readQueues.set(key, queue)
             }
         }
@@ -78,7 +78,16 @@ export class ReplayApiAdapter implements IscApiAdapter {
         )
     }
 
-    private assertRecordedResponse(apiName: string, method: string, args: unknown[], key: string): unknown {
+    private resolveRecordedEntry(entry: ApiLogEntry, apiName: string, method: string): Promise<unknown> {
+        if (entry.error != null) {
+            return Promise.reject(
+                new ConnectorError(`Replay: recorded API failure: ${apiName}.${method}: ${entry.error}`)
+            )
+        }
+        return Promise.resolve(entry.response)
+    }
+
+    private assertRecordedResponse(apiName: string, method: string, args: unknown[], key: string): Promise<unknown> {
         const queue = this.readQueues.get(key)
         const cursor = this.readCursors.get(key) ?? 0
         if (!queue || cursor >= queue.length) {
@@ -87,7 +96,7 @@ export class ReplayApiAdapter implements IscApiAdapter {
             )
         }
         this.readCursors.set(key, cursor + 1)
-        return queue[cursor]
+        return this.resolveRecordedEntry(queue[cursor], apiName, method)
     }
 
     private resolveReplayCall(apiName: string, method: string, args: unknown[]): Promise<unknown> {
@@ -101,10 +110,10 @@ export class ReplayApiAdapter implements IscApiAdapter {
                 )
             }
             this.consumedWrites.add(idx)
-            return Promise.resolve(this.writeLog[idx].response)
+            return this.resolveRecordedEntry(this.writeLog[idx], apiName, method)
         }
 
-        return Promise.resolve(this.assertRecordedResponse(apiName, method, args, key))
+        return this.assertRecordedResponse(apiName, method, args, key)
     }
 
     private createApiProxy(apiName: string): Record<string, unknown> {

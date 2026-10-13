@@ -1135,7 +1135,12 @@ describe('SourceService.setMachineAccountOwnerIdentity', () => {
         expect(client.machineAccountsApi.updateMachineAccount).toHaveBeenCalledTimes(1)
         expect(client.machineAccountsApi.updateMachineAccount).toHaveBeenCalledWith({
             id: 'fetched-id',
-            requestBody: [{ op: 'replace', path: '/ownerIdentity', value: { type: 'IDENTITY', id: 'identity-9' } }],
+            requestBody: [{ op: 'add', path: '/ownerIdentity', value: { type: 'IDENTITY', id: 'identity-9' } }],
+        })
+        expect(client.call).toHaveBeenCalledWith(expect.any(Function), {
+            priority: expect.anything(),
+            context: 'SourceService>setMachineAccountOwnerIdentity',
+            throwOnError: true,
         })
         expect(client.machineAccountsApi.updateMachineAccount.mock.calls[0]).toHaveLength(1)
         expect(JSON.stringify(client.machineAccountsApi.updateMachineAccount.mock.calls[0][0])).not.toContain('identityId')
@@ -1162,7 +1167,7 @@ describe('SourceService.setMachineAccountOwnerIdentity', () => {
         })
         expect(client.machineAccountsApi.updateMachineAccount).toHaveBeenNthCalledWith(2, {
             id: 'resolved-id',
-            requestBody: [{ op: 'replace', path: '/ownerIdentity', value: { type: 'IDENTITY', id: 'identity-9' } }],
+            requestBody: [{ op: 'add', path: '/ownerIdentity', value: { type: 'IDENTITY', id: 'identity-9' } }],
         })
     })
 
@@ -1177,7 +1182,26 @@ describe('SourceService.setMachineAccountOwnerIdentity', () => {
 
         await expect(service.setMachineAccountOwnerIdentity(target, 'identity-9')).resolves.toBeUndefined()
 
-        expect(log.error).toHaveBeenCalled()
+        expect(log.error).toHaveBeenCalledWith(
+            'Failed to set owner identity for machine account "machine-1": boom'
+        )
+        expect(client.machineAccountsApi.listMachineAccounts).not.toHaveBeenCalled()
+    })
+
+    it('logs when the client swallows the write failure as undefined', async () => {
+        const { service, client, log } = createService()
+        service.run.setManagedAccount('src-m::machine-1', {
+            id: 'fetched-id',
+            sourceId: 'src-m',
+            nativeIdentity: 'machine-1',
+        } as any)
+        client.call.mockResolvedValueOnce(undefined)
+
+        await expect(service.setMachineAccountOwnerIdentity(target, 'identity-9')).resolves.toBeUndefined()
+
+        expect(log.error).toHaveBeenCalledWith(
+            expect.stringContaining('Failed to set owner identity for machine account "machine-1"')
+        )
         expect(client.machineAccountsApi.listMachineAccounts).not.toHaveBeenCalled()
     })
 })
