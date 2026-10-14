@@ -11,6 +11,7 @@ describe('reviewSettings readSettings', () => {
         expect(result.fusionReportOnAggregation).toBeUndefined()
         expect(result.enableLocalization).toBe(false)
         expect(result.defaultLanguage).toBeUndefined()
+        expect(connectorSpecInitialValues.defaultLanguage).toBe('en')
         expect(result.identityLanguageAttribute).toBeUndefined()
     })
 

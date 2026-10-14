@@ -10,6 +10,7 @@ import { trimStr } from '../../../utils/safeRead'
 export const connectorSpecInitialValues = {
     fusionFormExpirationDays: 7,
     fusionMaxCandidatesForForm: 3,
+    defaultLanguage: 'en',
 } as const
 
 export const runtimeDefaults = {

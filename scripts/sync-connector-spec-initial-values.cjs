@@ -207,6 +207,7 @@ const merged = {
     fusionManualReviewScore: matching.fusionManualReviewScore,
     provisioningTimeout: advancedConnection.provisioningTimeout,
     fusionMaxCandidatesForForm: review.fusionMaxCandidatesForForm,
+    defaultLanguage: review.defaultLanguage,
     ...scope,
     ...processing,
     ...attributeMapping,

@@ -20,6 +20,7 @@
         "fusionManualReviewScore": 80,
         "provisioningTimeout": 300,
         "fusionMaxCandidatesForForm": 3,
+        "defaultLanguage": "en",
         "includeIdentities": true,
         "identityScopeQuery": "*",
         "maxHistoryMessages": 10,
@@ -1012,8 +1013,12 @@
                             "required": false,
                             "parentKey": "enableLocalization",
                             "parentValue": "true",
-                            "helpKey": "Leave unset for English.",
+                            "helpKey": "Fallback language when a reviewer has no language attribute. English is the default.",
                             "options": [
+                                {
+                                    "label": "English",
+                                    "value": "en"
+                                },
                                 {
                                     "label": "Spanish",
                                     "value": "es"

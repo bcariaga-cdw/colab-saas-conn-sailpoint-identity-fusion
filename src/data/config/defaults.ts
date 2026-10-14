@@ -17,6 +17,7 @@ export const connectorSpecInitialValues = {
     fusionManualReviewScore: matchingSettings.connectorSpecInitialValues.fusionManualReviewScore,
     provisioningTimeout: advancedConnectionSettings.connectorSpecInitialValues.provisioningTimeout,
     fusionMaxCandidatesForForm: reviewSettings.connectorSpecInitialValues.fusionMaxCandidatesForForm,
+    defaultLanguage: reviewSettings.connectorSpecInitialValues.defaultLanguage,
     ...scopeSettings.connectorSpecInitialValues,
     ...processingControlSettings.connectorSpecInitialValues,
     ...attributeMappingDefinitionsSettings.connectorSpecInitialValues,
