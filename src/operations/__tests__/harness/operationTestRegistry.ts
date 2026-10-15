@@ -35,6 +35,7 @@ export function createOperationTestRegistry(options: TestRegistryOptions = {}): 
     sources.isEmailWorkflowConfigured = vi.fn().mockReturnValue(true)
     sources.setProcessLock = vi.fn().mockResolvedValue(undefined)
     sources.releaseProcessLock = vi.fn().mockResolvedValue(undefined)
+    sources.removeProcessingAttribute = vi.fn().mockResolvedValue(undefined)
     sources.resetBatchCumulativeCount = vi.fn().mockResolvedValue(undefined)
     sources.saveBatchCumulativeCount = vi.fn().mockResolvedValue(undefined)
     sources.clearManagedAccounts = vi.fn()
@@ -140,6 +141,7 @@ export function createOperationTestRegistry(options: TestRegistryOptions = {}): 
 
     return registry
 }
+
 
 
 

@@ -1205,3 +1205,46 @@ describe('SourceService.setMachineAccountOwnerIdentity', () => {
         expect(client.machineAccountsApi.listMachineAccounts).not.toHaveBeenCalled()
     })
 })
+
+describe('SourceService.removeProcessingAttribute', () => {
+    function withFusionSource() {
+        const harness = createService()
+        ;(harness.service as any).fusionSourceIdValue = 'fusion-source-id'
+        harness.client.sourcesApi.getSource = vi.fn()
+        harness.client.sourcesApi.updateSource = vi.fn().mockResolvedValue({ data: {} })
+        return harness
+    }
+
+    it('removes the processing connector attribute when it is present', async () => {
+        const { service, client } = withFusionSource()
+        ;(service as any).processLockAcquired = true
+        client.sourcesApi.getSource.mockResolvedValue({
+            data: { connectorAttributes: { processing: false, resetAccounts: true } },
+        })
+
+        await service.removeProcessingAttribute()
+
+        expect(client.sourcesApi.updateSource).toHaveBeenCalledWith({
+            id: 'fusion-source-id',
+            jsonPatchOperationV2025: [{ op: 'remove', path: '/connectorAttributes/processing' }],
+        })
+
+        client.sourcesApi.updateSource.mockClear()
+        await service.releaseProcessLock()
+        expect(client.sourcesApi.updateSource).not.toHaveBeenCalled()
+    })
+
+    it('does not patch when the processing attribute is absent', async () => {
+        const { service, client } = withFusionSource()
+        ;(service as any).processLockAcquired = true
+        client.sourcesApi.getSource.mockResolvedValue({
+            data: { connectorAttributes: { resetAccounts: true } },
+        })
+
+        await service.removeProcessingAttribute()
+
+        expect(client.sourcesApi.updateSource).not.toHaveBeenCalled()
+        await service.releaseProcessLock()
+        expect(client.sourcesApi.updateSource).not.toHaveBeenCalled()
+    })
+})

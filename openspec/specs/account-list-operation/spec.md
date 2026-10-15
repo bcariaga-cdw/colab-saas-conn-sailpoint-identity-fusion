@@ -422,13 +422,14 @@ During the account-list Refresh phase, `processFusionAccounts` SHALL update `Ope
 
 ### Requirement: Setup phase SHALL handle independent resetAccounts and resetForms flags
 
-During Phase 1 Setup of a persistent account-list aggregation, the connector SHALL evaluate `resetForms` and `resetAccounts` independently. When `resetForms` is enabled, the connector SHALL close in-flight Fusion reviews: it SHALL delete all Fusion review form definitions matching the Fusion form name pattern via `FormService.deleteExistingForms()`, and if ISC leaves form instances for those definitions, it SHALL cancel or delete those instances in the same Setup pass so no open Fusion review instances remain for the deleted definitions. The connector SHALL then patch `resetForms` back to `false`, and continue Setup unless `resetAccounts` is also enabled. When `resetAccounts` is enabled, the connector SHALL patch `resetAccounts` back to `false` (and legacy `reset` to `false` if present), clear persisted fusion state, reset batch cumulative counters, and return from Setup without proceeding to later phases (zero accounts emitted). Setup MUST NOT patch or replace still-pending Fusion review form definitions on a normal aggregation solely to apply a newer form layout.
+During Phase 1 Setup of a persistent account-list aggregation, the connector SHALL evaluate `resetForms` and `resetAccounts` independently. When `resetForms` is enabled, the connector SHALL close in-flight Fusion reviews: it SHALL delete all Fusion review form definitions matching the Fusion form name pattern via `FormService.deleteExistingForms()`, and if ISC leaves form instances for those definitions, it SHALL cancel or delete those instances in the same Setup pass so no open Fusion review instances remain for the deleted definitions. The connector SHALL then patch `resetForms` back to `false`, and continue Setup unless `resetAccounts` is also enabled. When `resetAccounts` is enabled, the connector SHALL remove the `processing` connector attribute when present, patch `resetAccounts` back to `false` (and legacy `reset` to `false` if present), clear persisted fusion state, reset batch cumulative counters, and return from Setup without proceeding to later phases (zero accounts emitted). A persistent reset SHALL NOT acquire the processing lock, so an existing `processing` value cannot block the reset. Setup MUST NOT patch or replace still-pending Fusion review form definitions on a normal aggregation solely to apply a newer form layout.
 
 #### Scenario: resetAccounts only clears accounts and exits
 
 - **GIVEN** a persistent aggregation with `resetAccounts` enabled and `resetForms` disabled
 - **WHEN** Setup runs
 - **THEN** the connector SHALL NOT call `FormService.deleteExistingForms()`
+- **AND** the connector SHALL remove the `processing` connector attribute when present
 - **AND** the connector SHALL clear fusion state and exit Setup early with zero accounts
 - **AND** the connector SHALL patch `resetAccounts` to `false`
 
@@ -448,6 +449,7 @@ During Phase 1 Setup of a persistent account-list aggregation, the connector SHA
 - **GIVEN** a persistent aggregation with both `resetAccounts` and `resetForms` enabled
 - **WHEN** Setup runs
 - **THEN** the connector SHALL close Fusion reviews before clearing fusion state
+- **AND** the connector SHALL remove the `processing` connector attribute when present
 - **AND** the connector SHALL patch both flags to `false`
 - **AND** Setup SHALL exit early with zero accounts
 

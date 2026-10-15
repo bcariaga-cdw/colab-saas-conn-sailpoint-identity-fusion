@@ -16,6 +16,8 @@ describe('setupPhase reset flags', () => {
 
         expect(result).toBe(false)
         expect(registry.forms.deleteExistingForms).not.toHaveBeenCalled()
+        expect(registry.sources.setProcessLock).not.toHaveBeenCalled()
+        expect(registry.sources.removeProcessingAttribute).toHaveBeenCalled()
         expect(fusion.disableResetAccounts).toHaveBeenCalled()
         expect(fusion.disableResetForms).not.toHaveBeenCalled()
         expect(fusion.resetState).toHaveBeenCalled()
@@ -31,6 +33,8 @@ describe('setupPhase reset flags', () => {
         const result = await setupPhase(registry, undefined, { isPersistent: true })
 
         expect(result).toBe(true)
+        expect(registry.sources.setProcessLock).toHaveBeenCalled()
+        expect(registry.sources.removeProcessingAttribute).not.toHaveBeenCalled()
         expect(registry.forms.deleteExistingForms).toHaveBeenCalled()
         expect(fusion.disableResetForms).toHaveBeenCalled()
         expect(fusion.disableResetAccounts).not.toHaveBeenCalled()
@@ -47,6 +51,8 @@ describe('setupPhase reset flags', () => {
         const result = await setupPhase(registry, undefined, { isPersistent: true })
 
         expect(result).toBe(false)
+        expect(registry.sources.setProcessLock).not.toHaveBeenCalled()
+        expect(registry.sources.removeProcessingAttribute).toHaveBeenCalled()
         expect(registry.forms.deleteExistingForms).toHaveBeenCalled()
         expect(fusion.disableResetForms).toHaveBeenCalled()
         expect(fusion.disableResetAccounts).toHaveBeenCalled()
@@ -62,6 +68,8 @@ describe('setupPhase reset flags', () => {
         const result = await setupPhase(registry, undefined, { isPersistent: true })
 
         expect(result).toBe(true)
+        expect(registry.sources.setProcessLock).toHaveBeenCalled()
+        expect(registry.sources.removeProcessingAttribute).not.toHaveBeenCalled()
         expect(registry.forms.deleteExistingForms).not.toHaveBeenCalled()
         expect(fusion.disableResetAccounts).not.toHaveBeenCalled()
         expect(fusion.disableResetForms).not.toHaveBeenCalled()
@@ -77,6 +85,8 @@ describe('setupPhase reset flags', () => {
         const result = await setupPhase(registry, undefined, { isPersistent: false })
 
         expect(result).toBe(false)
+        expect(registry.sources.setProcessLock).not.toHaveBeenCalled()
+        expect(registry.sources.removeProcessingAttribute).not.toHaveBeenCalled()
         expect(registry.forms.deleteExistingForms).not.toHaveBeenCalled()
         expect(fusion.disableResetAccounts).not.toHaveBeenCalled()
         expect(fusion.disableResetForms).not.toHaveBeenCalled()
@@ -92,6 +102,7 @@ describe('setupPhase reset flags', () => {
         const result = await setupPhase(registry, undefined, { isPersistent: false })
 
         expect(result).toBe(true)
+        expect(registry.sources.removeProcessingAttribute).not.toHaveBeenCalled()
         expect(registry.forms.deleteExistingForms).not.toHaveBeenCalled()
         expect(fusion.disableResetAccounts).not.toHaveBeenCalled()
         expect(fusion.disableResetForms).not.toHaveBeenCalled()

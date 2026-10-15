@@ -30,6 +30,7 @@ async function applyFusionFormsReset(serviceRegistry: ServiceRegistry): Promise<
 
 async function applyFusionAccountReset(serviceRegistry: ServiceRegistry): Promise<void> {
     const { fusion, sources } = serviceRegistry
+    await sources.removeProcessingAttribute()
     await fusion.disableResetAccounts()
     await fusion.resetState()
     await sources.resetBatchCumulativeCount()
@@ -95,14 +96,15 @@ export async function setupPhase(
         )
     }
 
-    if (isPersistent) await sources.setProcessLock()
+    const resetAccounts = fusion.isResetAccounts()
+    if (isPersistent && !resetAccounts) await sources.setProcessLock()
 
     if (isPersistent && fusion.isResetForms()) {
         log.detail({ action: 'reset forms flag detected, deleting fusion review forms' })
         await applyFusionFormsReset(serviceRegistry)
     }
 
-    if (fusion.isResetAccounts()) {
+    if (resetAccounts) {
         log.detail({ action: 'reset accounts flag detected, clearing state and exiting' })
         if (isPersistent) await applyFusionAccountReset(serviceRegistry)
         return false

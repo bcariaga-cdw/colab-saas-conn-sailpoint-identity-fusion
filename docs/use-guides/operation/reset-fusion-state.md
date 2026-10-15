@@ -16,7 +16,7 @@ Use this guide when you need to **safely rebuild Fusion account data or clear re
 | Testing major config changes in dev | **Reset accounts?** once | Dry-run first — see [Analyze changes with dry-run](analyze-with-dry-run.md) |
 | Clear in-flight Fusion reviews (and recut layout after a form change) | **Reset forms?** once | Manual form cleanup in ISC (if feasible) |
 | Schema changes (mapping/definition) | Maybe reset accounts | Discover Schema is usually sufficient |
-| Stuck processing state | **No reset** | Retry aggregation (auto-resets stuck flag) |
+| Stuck `processing` config option | **Reset accounts?** once | Removes the `processing` connector attribute left by an unfinished run |
 | Production environment | ⚠️ **Rarely** | High impact; coordinate with stakeholders |
 
 The **Developer Settings** section help in the ISC source configuration UI displays the **installed connector version**. Use it to confirm which build is deployed.
@@ -51,6 +51,7 @@ Both reset flags **automatically turn off after one aggregation**.
 **What reset accounts does:**
 
 - Clears persisted Fusion account state (attributes, history, processing flags)
+- Removes the `processing` connector attribute when that option is present on the source
 - Emits zero accounts on the reset run; the following aggregation rebuilds from scratch
 - Does NOT delete source accounts, identities, or review forms (unless **Reset forms?** is also enabled)
 
@@ -119,7 +120,7 @@ If **Reset accounts?** or **Reset forms?** is enabled, dry-run detects the flag 
 | **Reset not working** | Flag still enabled after run | Flags auto-disable after one run; verify connector version supports reset flags |
 | **Zero accounts after reset run** | Expected on reset run | Run aggregation again to rebuild |
 | **Forms reappear unexpectedly** | New Match outcomes | Expected — review forms queue from new potential matches |
-| **Stuck processing** | Unfinished prior run | Retry aggregation before resetting |
+| **Stuck processing** | Unfinished prior run left the `processing` config option | Run aggregation with **Reset accounts?** — that run removes the option |
 
 For broader recovery scenarios, see [Troubleshooting — Reset and recovery](../validation-and-troubleshooting/troubleshooting.md#category-8-reset-and-recovery).
 

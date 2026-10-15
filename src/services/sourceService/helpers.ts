@@ -17,3 +17,19 @@ export function buildSourceConfigPatch(sourceId: string, path: string, value: an
         ],
     }
 }
+
+/**
+ * Builds a JSON Patch request that deletes one connector attribute path.
+ * `op: 'remove'` fails when the path is absent, so callers must check first.
+ */
+export function buildSourceConfigRemove(sourceId: string, path: string): SourcesV2025ApiUpdateSourceRequest {
+    return {
+        id: sourceId,
+        jsonPatchOperationV2025: [
+            {
+                op: 'remove' as JsonPatchOperationV2025OpV2025,
+                path,
+            },
+        ],
+    }
+}

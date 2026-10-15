@@ -13,7 +13,7 @@ import { LogService } from '../logService'
 import { assert } from '../../utils/assert'
 import { wrapConnectorError } from '../../utils/error'
 import { trimStr } from '../../utils/safeRead'
-import { buildSourceConfigPatch } from './helpers'
+import { buildSourceConfigPatch, buildSourceConfigRemove } from './helpers'
 import { SourceInfo } from './types'
 import { buildIscAccountsQueryFilter } from './accountFilters'
 import { FusionRun } from '../../model/fusionRun'
@@ -774,6 +774,36 @@ export class SourceService {
             'SourceService>setProcessLock'
         )
         this.processLockAcquired = true
+    }
+
+    /**
+     * Delete the `processing` connector attribute.
+     * Reset accounts uses this so a prior lock does not remain on the source.
+     * Clears the in-memory lock so a later release does not write the attribute back.
+     */
+    public async removeProcessingAttribute(): Promise<void> {
+        const fusionSourceId = this.fusionSourceId
+        const currentSource = await this.client.call(
+            (api) => api.sources.getSource({ id: fusionSourceId }).then((r) => r.data),
+            { priority: QueuePriority.HIGH, context: 'SourceService>removeProcessingAttribute' }
+        )
+        assert(
+            currentSource,
+            'Failed to fetch fusion source to remove the processing config option. The API call returned no data.'
+        )
+        const attributes = currentSource.connectorAttributes as Record<string, unknown> | undefined
+        if (!attributes || !Object.prototype.hasOwnProperty.call(attributes, 'processing')) {
+            this.processLockAcquired = false
+            return
+        }
+
+        this.log.info('Removing processing config option.')
+        const requestParameters = buildSourceConfigRemove(fusionSourceId, '/connectorAttributes/processing')
+        await this.client.call((api) => api.sources.updateSource(requestParameters).then((r) => r.data), {
+            priority: QueuePriority.HIGH,
+            context: 'SourceService>removeProcessingAttribute',
+        })
+        this.processLockAcquired = false
     }
 
     public async releaseProcessLock(): Promise<void> {
