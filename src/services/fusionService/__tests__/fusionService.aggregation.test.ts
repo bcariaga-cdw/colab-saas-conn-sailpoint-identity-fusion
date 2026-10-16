@@ -1301,7 +1301,7 @@ describe('FusionService — aggregation', () => {
             vi.spyOn(ctx.mockSources, 'managedAccountsById', 'get').mockReturnValue(workQueue)
             vi.spyOn(ctx.mockSources, 'managedAccountsByIdentityId', 'get').mockReturnValue(new Map())
 
-            // Persisted Fusion row from a prior run that already lists the uncorrelated account.
+            // Persisted Fusion account from a prior run that already lists the uncorrelated account.
             ctx.fusionService.setFusionAccount(
                 FusionAccount.fromFusionAccount({
                     nativeIdentity: 'fusion-prior-1',

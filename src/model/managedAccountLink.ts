@@ -4,7 +4,7 @@ import { FusionRun } from './fusionRun'
 import { getManagedAccountKeyFromAccount } from './managedAccountKey'
 import { hasValue } from '../utils/safeRead'
 
-/** True when a loaded Fusion row already references this managed-account key. */
+/** True when a loaded Fusion account already references this managed-account key. */
 function fusionAccountLinksManagedKey(fa: FusionAccount, key: string): boolean {
     return (
         fa.accountIdsSet.has(key) ||
@@ -13,7 +13,7 @@ function fusionAccountLinksManagedKey(fa: FusionAccount, key: string): boolean {
     )
 }
 
-/** Register every managed-account key referenced on a Fusion row into the linked-key index. */
+/** Register every managed-account key referenced on a Fusion account into the linked-key index. */
 export function addFusionAccountLinkedKeysToIndex(fa: FusionAccount, run: FusionRun): void {
     for (const key of fa.accountIdsSet) run.addToLinkedAccountIndex(key)
     for (const key of fa.missingAccountIdsSet) run.addToLinkedAccountIndex(key)
@@ -21,7 +21,7 @@ export function addFusionAccountLinkedKeysToIndex(fa: FusionAccount, run: Fusion
 }
 
 /**
- * True when a managed account is already represented on a loaded Fusion row
+ * True when a managed account is already represented on a loaded Fusion account
  * (live blend, missing reference, or persisted accounts from the prior run),
  * or when its identityId matches a loaded identity-origin Fusion account.
  */

@@ -700,7 +700,7 @@ export class FusionService {
     }
 
     private buildLinkedAccountKeyIndex(): void {
-        // Build a one-shot flat index of every account key already linked in a loaded Fusion row.
+        // Build a one-shot flat index of every account key already linked in a loaded Fusion account.
         // isManagedAccountLinkedInFusion uses this for O(1) per-account lookups instead
         // of scanning fusionAccountMap + identity-linked Fusion account map (O(A+I)) for every queued
         // managed account in both the correlated and uncorrelated sweeps.
@@ -715,7 +715,7 @@ export class FusionService {
 
     private async runCorrelatedAccountSweep(map: Map<string, Account>): Promise<void> {
         // Correlated account sweep: resolve all correlated managed accounts before uncorrelated scoring begins.
-        // Orphan correlated accounts (correlated on the source but absent from any loaded Fusion row)
+        // Orphan correlated accounts (correlated on the source but absent from any loaded Fusion account)
         // are registered as non-matches in the identity-linked Fusion account map here, so they are immediately visible
         // as deferred-match candidates when uncorrelated accounts are scored in the uncorrelated scoring sweep.
         const correlatedAccounts = [...map.values()].filter((a) => a.uncorrelated === false)
@@ -774,7 +774,7 @@ export class FusionService {
     /**
      * Processes a single managed account through the Match workflow (or a correlated
      * orphan shortcut when the account is correlated on the source but not linked to
-     * any loaded Fusion row).
+     * any loaded Fusion account).
      * After scoring, the account is either assigned automatically to the matched identity
      * (perfect scores when enabled), sent for manual review (partial match), or handled
      * based on the source type:
@@ -1035,7 +1035,7 @@ export class FusionService {
 
     /**
      * True when this managed account is already represented on a loaded Fusion account
-     * (platform Fusion row or identity-origin Fusion row), or when its identityId matches
+     * (platform Fusion account or identity-origin Fusion account), or when its identityId matches
      * a loaded identity-origin Fusion account.
      *
      * Uses the linked account key index (O(1)) while managed account processing is active (built by
@@ -1343,7 +1343,7 @@ export class FusionService {
             this.run.managedAccountProcessingBatchSize
         )
         // Released only after the uncorrelated sweep: its pre-score gate checks every queued account
-        // for an existing Fusion link, and without the index each check scans every loaded Fusion row.
+        // for an existing Fusion link, and without the index each check scans every loaded Fusion account.
         this.run.clearLinkedAccountIndex()
         this.run.resetManagedAccountProcessing()
         return { processed, matchScoringMs: this.run.matchScoringMs }
