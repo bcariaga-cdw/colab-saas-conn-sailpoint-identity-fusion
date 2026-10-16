@@ -1623,6 +1623,70 @@ describe('FusionService — aggregation', () => {
             expect(managedMap.has(authAccount.id!)).toBe(true)
         })
 
+        it('keeps the linked account key index through the uncorrelated sweep, then releases it', async () => {
+            ;(ctx.fusionService as any).run.sourcesByName.set('Source A', {
+                id: 'source-a-id',
+                name: 'Source A',
+                sourceType: 'authoritative',
+                config: { deferredMatching: false },
+            })
+            vi.spyOn(ctx.mockSources, 'managedSources', 'get').mockReturnValue([])
+            ctx.mockMappingService.mapAttributes.mockImplementation((account) => account)
+            ctx.mockDefinitionService.refreshNormalAttributes.mockResolvedValue()
+
+            const orphanAccount = {
+                id: 'acct-orphan-1',
+                nativeIdentity: 'native-orphan-1',
+                name: 'Orphan Correlated',
+                sourceId: 'source-a-id',
+                sourceName: 'Source A',
+                identityId: 'identity-out-of-scope',
+                attributes: {},
+                uncorrelated: false,
+            } as Account
+            const linkedAccount = {
+                id: 'acct-linked-1',
+                nativeIdentity: 'native-linked-1',
+                name: 'Linked Uncorrelated',
+                sourceId: 'source-a-id',
+                sourceName: 'Source A',
+                attributes: {},
+                uncorrelated: true,
+            } as Account
+            const linkedKey = 'source-a-id::native-linked-1'
+            const workQueue = new Map<string, Account>([
+                ['source-a-id::native-orphan-1', orphanAccount],
+                [linkedKey, linkedAccount],
+            ])
+            vi.spyOn(ctx.mockSources, 'managedAccountsById', 'get').mockReturnValue(workQueue)
+            vi.spyOn(ctx.mockSources, 'managedAccountsByIdentityId', 'get').mockReturnValue(new Map())
+
+            // Persisted Fusion account from a prior run that already lists the uncorrelated account.
+            ctx.fusionService.setFusionAccount(
+                FusionAccount.fromFusionAccount({
+                    nativeIdentity: 'fusion-prior-1',
+                    id: 'isc-fusion-prior-1',
+                    name: 'Prior Fusion Row',
+                    sourceName: 'Identity Fusion NG',
+                    attributes: { accounts: [linkedKey] },
+                } as unknown as Account)
+            )
+
+            await ctx.fusionService.initializeManagedAccountProcessing()
+            await ctx.fusionService.processCorrelatedManagedAccounts()
+            expect(ctx.run.linkedAccountKeyIndex?.has(linkedKey)).toBe(true)
+
+            const indexSpy = vi.spyOn(ctx.run, 'linkedAccountKeyIndex', 'get')
+            await ctx.fusionService.processUncorrelatedManagedAccounts()
+
+            // Every pre-score gate lookup in the uncorrelated sweep must hit the index, not the full scan.
+            expect(indexSpy).toHaveBeenCalled()
+            expect(indexSpy.mock.results.every((result) => result.value !== undefined)).toBe(true)
+            expect(workQueue.has(linkedKey)).toBe(false)
+            indexSpy.mockRestore()
+            expect(ctx.run.linkedAccountKeyIndex).toBeUndefined()
+        })
+
         it('runs Match scoring for record sources when includeRecordAccountsForMatching is omitted (default)', async () => {
             const mockManagedAccount = {
                 id: 'acct-record-default-match-1',

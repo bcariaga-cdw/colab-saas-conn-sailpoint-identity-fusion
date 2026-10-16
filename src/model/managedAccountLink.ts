@@ -32,10 +32,12 @@ export function isManagedAccountLinkedInFusion(account: Account, run: FusionRun)
         if (index) {
             if (index.has(key)) return true
         } else {
-            const isLinked = [...run.allFusionAccounts, ...run.allFusionIdentities].some((fa) =>
-                fusionAccountLinksManagedKey(fa, key)
-            )
-            if (isLinked) return true
+            for (const fa of run.fusionAccountsIterable()) {
+                if (fusionAccountLinksManagedKey(fa, key)) return true
+            }
+            for (const fa of run.allFusionIdentities) {
+                if (fusionAccountLinksManagedKey(fa, key)) return true
+            }
         }
     }
     const identityId = account.identityId
