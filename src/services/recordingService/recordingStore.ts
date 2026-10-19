@@ -4,6 +4,7 @@ import type { RecordingConfig } from '../../model/config'
 import type { ApiLogEntry } from '../clientService/recordingApiAdapter'
 import { NdjsonRecordingStore } from './ndjsonRecordingStore'
 import { recordingCacheKey } from '../../data/recordingPaths'
+import { forEachNdjsonLine } from '../../utils/ndjson'
 
 /** Metadata written to manifest.json on finalize. */
 export interface RecordingManifest {
@@ -72,9 +73,11 @@ export function clearRecordingStoreCache(): void {
 }
 
 function parseNdjsonFile(filePath: string): ApiLogEntry[] {
-    const content = fs.readFileSync(filePath, 'utf-8').trim()
-    if (!content) return []
-    return content.split('\n').map((line) => JSON.parse(line) as ApiLogEntry)
+    const entries: ApiLogEntry[] = []
+    forEachNdjsonLine(filePath, (line) => {
+        entries.push(JSON.parse(line) as ApiLogEntry)
+    })
+    return entries
 }
 
 function readApiLogFromManifest(

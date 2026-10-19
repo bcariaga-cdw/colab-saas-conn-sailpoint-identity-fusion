@@ -1,5 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import { forEachNdjsonLine } from '../../utils/ndjson'
 
 const LOCK_RETRIES = 200
 const LOCK_DELAY_MS = 2
@@ -49,12 +50,8 @@ export function bootstrapStepCounter(recordingDir: string, stepsFile: string): v
     const counterPath = path.join(recordingDir, '.step-counter')
     if (fs.existsSync(counterPath) || !fs.existsSync(stepsFile)) return
 
-    const content = fs.readFileSync(stepsFile, 'utf-8').trim()
-    if (!content) return
-
     let max = 0
-    for (const line of content.split('\n')) {
-        if (!line) continue
+    forEachNdjsonLine(stepsFile, (line) => {
         try {
             const step = JSON.parse(line) as { stepId?: string }
             const match = step.stepId?.match(/^step-(\d+)$/)
@@ -62,7 +59,7 @@ export function bootstrapStepCounter(recordingDir: string, stepsFile: string): v
         } catch {
             /* skip malformed lines */
         }
-    }
+    })
     if (max > 0) {
         fs.mkdirSync(recordingDir, { recursive: true })
         fs.writeFileSync(counterPath, String(max))

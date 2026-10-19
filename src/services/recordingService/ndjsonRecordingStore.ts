@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { recordingChainDir } from '../../data/recordingPaths'
+import { countNdjsonLines, forEachNdjsonLine } from '../../utils/ndjson'
 import type { ApiLogEntry } from '../clientService/recordingApiAdapter'
 
 function normalizeApiLogEntry(raw: ApiLogEntry): ApiLogEntry {
@@ -31,8 +32,8 @@ export class NdjsonRecordingStore implements RecordingStore {
     ) {
         this.recordingDir = recordingChainDir(chainName, baseurl)
         this.apiLogPath = path.join(this.recordingDir, 'api-log.ndjson')
-        this.apiLogEntryCount = this.countLines(this.apiLogPath)
-        this.phaseCount = this.countLines(path.join(this.recordingDir, COLLECTION_FILES.phases))
+        this.apiLogEntryCount = countNdjsonLines(this.apiLogPath)
+        this.phaseCount = countNdjsonLines(path.join(this.recordingDir, COLLECTION_FILES.phases))
     }
 
     appendApiCall(entry: ApiLogEntry): void {
@@ -63,10 +64,11 @@ export class NdjsonRecordingStore implements RecordingStore {
     }
 
     loadApiLog(): ApiLogEntry[] {
-        if (!fs.existsSync(this.apiLogPath)) return []
-        const content = fs.readFileSync(this.apiLogPath, 'utf-8').trim()
-        if (!content) return []
-        return content.split('\n').map((line) => normalizeApiLogEntry(JSON.parse(line) as ApiLogEntry))
+        const entries: ApiLogEntry[] = []
+        forEachNdjsonLine(this.apiLogPath, (line) => {
+            entries.push(normalizeApiLogEntry(JSON.parse(line) as ApiLogEntry))
+        })
+        return entries
     }
 
     writeManifest(manifest: RecordingManifest): void {
@@ -112,13 +114,6 @@ export class NdjsonRecordingStore implements RecordingStore {
         if (this.dirReady) return
         await fs.promises.mkdir(this.recordingDir, { recursive: true })
         this.dirReady = true
-    }
-
-    private countLines(filePath: string): number {
-        if (!fs.existsSync(filePath)) return 0
-        const content = fs.readFileSync(filePath, 'utf-8').trim()
-        if (!content) return 0
-        return content.split('\n').filter(Boolean).length
     }
 }
 

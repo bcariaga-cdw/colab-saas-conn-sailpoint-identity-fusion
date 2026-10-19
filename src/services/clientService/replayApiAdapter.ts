@@ -5,6 +5,7 @@ import { ApiLogEntry } from './recordingApiAdapter'
 import { ConnectorError } from '@sailpoint/connector-sdk'
 import { isWriteMethod, stableApiCallKey } from './apiWriteClassification'
 import { loadRecordingApiLog } from '../recordingService/recordingStore'
+import { forEachNdjsonLine } from '../../utils/ndjson'
 
 function stableKey(apiName: string, method: string, args: unknown[]): string {
     return stableApiCallKey(apiName, method, args)
@@ -150,10 +151,11 @@ export function loadApiLog(fileOrDirPath: string): ApiLogEntry[] {
         }
     }
 
-    if (!fs.existsSync(fileOrDirPath)) return []
-    const content = fs.readFileSync(fileOrDirPath, 'utf-8').trim()
-    if (!content) return []
-    return content.split('\n').map((line) => JSON.parse(line))
+    const entries: ApiLogEntry[] = []
+    forEachNdjsonLine(fileOrDirPath, (line) => {
+        entries.push(JSON.parse(line))
+    })
+    return entries
 }
 
 

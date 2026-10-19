@@ -4,6 +4,7 @@ import { LogService } from './logService'
 import { FusionRun } from '../model/fusionRun'
 import { FusionConfig, RecordingConfig } from '../model/config'
 import { ApiLogEntry } from './clientService/recordingApiAdapter'
+import { forEachNdjsonLine } from '../utils/ndjson'
 import { sanitizeForJson } from '../utils/sanitizeForJson'
 import type { MatchingResultsSnapshot } from './recordingService/matchingResultsSnapshot'
 import {
@@ -85,15 +86,14 @@ function loadStepsFromDisk(store: RecordingStore): RecordedStep[] {
     if (!fs.existsSync(stepsFile)) return []
 
     const byId = new Map<string, RecordedStep>()
-    for (const line of fs.readFileSync(stepsFile, 'utf-8').trim().split('\n')) {
-        if (!line) continue
+    forEachNdjsonLine(stepsFile, (line) => {
         try {
             const step = JSON.parse(line) as RecordedStep
             byId.set(step.stepId, step)
         } catch {
             /* skip malformed lines */
         }
-    }
+    })
 
     return Array.from(byId.values()).sort((a, b) => {
         const na = parseInt(a.stepId.replace('step-', ''), 10)

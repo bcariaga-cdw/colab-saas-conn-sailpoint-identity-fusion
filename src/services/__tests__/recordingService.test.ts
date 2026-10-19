@@ -7,6 +7,7 @@ import * as path from 'path'
 import { NdjsonRecordingStore } from '../recordingService/ndjsonRecordingStore'
 import * as os from 'os'
 import { allocateStepIndex } from '../recordingService/recordingStepCounter'
+import { recordingChainDir } from '../../data/recordingPaths'
 
 describe('RecordingService', () => {
     afterEach(() => {
@@ -254,6 +255,18 @@ describe('allocateStepIndex', () => {
 })
 
 describe('NdjsonRecordingStore', () => {
+    it('seeds api-log entry count from an existing file', () => {
+        const chainName = `ndjson-seed-${Date.now()}`
+        const dir = recordingChainDir(chainName)
+        fs.mkdirSync(dir, { recursive: true })
+        fs.writeFileSync(path.join(dir, 'api-log.ndjson'), '{"api":"a"}\n{"api":"b"}\n')
+
+        const store = new NdjsonRecordingStore(chainName)
+        expect(store.getApiLogEntryCount()).toBe(2)
+
+        fs.rmSync(dir, { recursive: true, force: true })
+    })
+
     it('append/load api-log and manifest', () => {
         const chainName = `ndjson-${Date.now()}`
         const store = new NdjsonRecordingStore(chainName)
