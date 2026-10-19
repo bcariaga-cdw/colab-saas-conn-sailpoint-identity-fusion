@@ -1700,6 +1700,10 @@ export class FusionService {
             report.fusionBlends = [...tracker.fusionBlends]
         }
 
+        if (this.run.deletedFusionReviewForms.length > 0) {
+            report.fusionReviewDeletions = this.run.deletedFusionReviewForms.map((entry) => ({ ...entry }))
+        }
+
         if (options?.clearTracker ?? true) {
             tracker.clear()
         }

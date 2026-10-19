@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates u
 
 ---
 
+## 2026-10-19 · v2.2.0
+
+### ✨ New Features
+
+- **Fusion Review Deletions on the aggregation report** — After a persistent aggregation, the owner report ends with a Fusion Review Deletions section that lists the Fusion review form definitions deleted on that run, by form name. The section is left out when that run deleted none. A dry-run report or Fusion report that deleted nothing does not show the section.
+
+---
+
 ## 2026-10-12 · v2.2.0
 
 ### ✨ New Features

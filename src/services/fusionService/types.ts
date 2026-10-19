@@ -1,5 +1,6 @@
 import { SourceType } from '../../model/config'
 import type { FusionReportBlend } from '../../model/fusionReportBlend'
+import type { DeletedFusionReviewForm } from '../../model/fusionRun'
 
 // ============================================================================
 // Type Definitions — Fusion Report
@@ -245,6 +246,8 @@ export type FusionReport = {
     fusionReviewDecisions?: FusionReportDecision[]
     /** Blending events executed during this run */
     fusionBlends?: FusionReportBlend[]
+    /** Fusion review form definitions deleted successfully during this run. */
+    fusionReviewDeletions?: DeletedFusionReviewForm[]
     /** Global warnings surfaced during report generation */
     warnings?: FusionReportWarnings
 }

@@ -237,7 +237,7 @@ export class FormLifecycle {
     /**
      * Delete a form definition
      */
-    async deleteFormDefinition(formDefinitionId: string): Promise<void> {
+    async deleteFormDefinition(formDefinitionId: string, formName?: string): Promise<void> {
         assert(formDefinitionId, 'Form definition ID is required')
         assert(this.deps.client, 'Client service is required')
 
@@ -246,6 +246,7 @@ export class FormLifecycle {
             (api: any) => api.customForms.deleteFormDefinition({ formDefinitionID: formDefinitionId }),
             { context: `FormService>deleteForm id=${formDefinitionId}` }
         )
+        this.deps.run.recordDeletedFusionReviewForm(formDefinitionId, formName)
         this.deps.log.debug(`Form definition deleted successfully: ${formDefinitionId}`)
     }
 
@@ -354,7 +355,8 @@ export class FormLifecycle {
         return parsed
     }
 
-    addFormToDelete(formDefinitionId: string): void {
+    addFormToDelete(formDefinitionId: string, formName?: string): void {
+        if (formName) this.deps.run.rememberFusionReviewFormName(formDefinitionId, formName)
         this.deps.run.formsToDelete.add(formDefinitionId)
     }
 

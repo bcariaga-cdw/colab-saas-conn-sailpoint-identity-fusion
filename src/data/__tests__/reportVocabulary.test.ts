@@ -16,6 +16,15 @@ describe('canonical report and review communication terms', () => {
         )
     })
 
+    it('Glossary lists Fusion Review Deletions', () => {
+        expect(glossary).toContain('**Fusion Review Deletions**')
+        expect(glossary).toMatch(
+            /\*\*Fusion Review Deletions\*\*\s*\|[^\n]*last section of an aggregation report[^\n]*deleted during that aggregation/
+        )
+        expect(glossary).toMatch(/\*\*Fusion Review Deletions\*\*[^\n]*Not a separate report/)
+        expect(glossary).toMatch(/\*\*Fusion Review Deletions\*\*[^\n]*not a list of cancelled form instances/)
+    })
+
     it('FusionReport entitlement names the Fusion report, not an aggregation report', () => {
         expect(glossary).toMatch(
             /\*\*FusionReport\*\*.*`report`[^\n]*\*\*Fusion report\*\*[^\n]*Not an aggregation report/

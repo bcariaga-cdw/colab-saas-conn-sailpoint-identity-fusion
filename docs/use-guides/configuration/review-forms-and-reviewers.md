@@ -42,6 +42,7 @@ When **Send report to owner on aggregation?** is enabled, the **aggregation repo
 - Failed matching entries (for example, form creation constraints/errors)
 - Warning block when more than one Fusion account is found for the same identity
 - Compact aggregation issues summary with warning/error counts and short sampled messages
+- **Fusion Review Deletions** (last section): the form definition names deleted on that aggregation. The section is omitted when nothing was deleted.
 
 To preview Match outcomes without persisting changes, use a **dry-run report** ([Analyze changes with dry-run](../operation/analyze-with-dry-run.md)) or request a **Fusion report** via the `report` entitlement. Neither is an aggregation report.
 

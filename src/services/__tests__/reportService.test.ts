@@ -839,4 +839,83 @@ describe('ReportService', () => {
         expect(html).toContain('Estadísticas de procesamiento')
         expect(html).toContain('Reporte de agregación de Identity Fusion')
     })
+
+    it('Deleted definitions are the last section', () => {
+        const { service } = createService()
+        const html = service.renderFusionReportHtml(
+            {
+                accounts: [
+                    {
+                        accountName: 'Ada Lovelace',
+                        accountSource: 'HR',
+                        matches: [{ identityName: 'Ada', scores: [] }],
+                    },
+                ],
+                matches: 1,
+                fusionReviewDeletions: [
+                    { formDefinitionId: 'form-1', formName: 'Fusion Review - Ada [HR] (hr::ada)' },
+                    { formDefinitionId: 'form-2', formName: 'Fusion Review - Grace [HR] (hr::grace)' },
+                ],
+            } as any,
+            'aggregation'
+        )
+        const reviewsAt = html.indexOf('Fusion Reviews')
+        const deletionsAt = html.indexOf('Fusion Review Deletions')
+        expect(reviewsAt).toBeGreaterThan(-1)
+        expect(deletionsAt).toBeGreaterThan(reviewsAt)
+        expect(html.indexOf('Ada Lovelace')).toBeLessThan(deletionsAt)
+        expect(html).toContain('Fusion Review - Ada [HR] (hr::ada)')
+        expect(html).toContain('Fusion Review - Grace [HR] (hr::grace)')
+        expect(html.indexOf('Processing Statistics')).toBeLessThan(deletionsAt)
+    })
+
+    it('Missing name shows the form definition id', () => {
+        const { service } = createService()
+        const html = service.renderFusionReportHtml(
+            {
+                accounts: [],
+                matches: 0,
+                fusionReviewDeletions: [{ formDefinitionId: 'form-opaque' }],
+            } as any,
+            'aggregation'
+        )
+        expect(html).toContain('Fusion Review Deletions')
+        expect(html).toContain('form-opaque')
+    })
+
+    it('No deletions omits the section', () => {
+        const { service } = createService()
+        const html = service.renderFusionReportHtml({ accounts: [], matches: 0 } as any, 'aggregation')
+        expect(html).not.toContain('Fusion Review Deletions')
+    })
+
+    it('Dry-run report without deletions omits the section', () => {
+        const { service } = createService()
+        const html = service.renderFusionReportHtml(
+            { accounts: [], matches: 0, fusionReviewDeletions: [] } as any,
+            'aggregation',
+            ReportService.DRY_RUN_REPORT_TITLE
+        )
+        expect(html).toContain('Identity Fusion Dry Run Report')
+        expect(html).not.toContain('Fusion Review Deletions')
+    })
+
+    it('Localized heading keeps stored form names', () => {
+        const { service } = createService()
+        const html = service.renderFusionReportHtml(
+            {
+                accounts: [],
+                matches: 0,
+                fusionReviewDeletions: [
+                    { formDefinitionId: 'form-1', formName: 'Fusion Review - Ada [HR] (hr::ada)' },
+                ],
+            } as any,
+            'aggregation',
+            undefined,
+            'es'
+        )
+        expect(html).toContain('Eliminaciones de revisión de Fusion')
+        expect(html).toContain('Fusion Review - Ada [HR] (hr::ada)')
+        expect(html).not.toContain('Fusion Review Deletions')
+    })
 })

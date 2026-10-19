@@ -148,6 +148,7 @@ These products share a Handlebars template family but are not interchangeable. *
 | **Fusion report**                  | HTML/email titled **Identity Fusion Report** from the `report` (**FusionReport**) action. Same Match preview as dry-run (writes inhibited); emailed to global owners. Does not stream Fusion accounts. |
 | **Aggregation report**             | HTML/email titled **Identity Fusion Aggregation Report** sent to owners after persistent account-list when **Send report to owner on aggregation?** is enabled.                                        |
 | **Fusion Review decision section** | A section of those HTML documents listing applied FusionDecision rows. Primarily meaningful on the aggregation report. Analysis reports may show in-memory decisions but must not persist new ones.    |
+| **Fusion Review Deletions**        | The last section of an aggregation report. It names the Fusion review form definitions deleted during that aggregation. Not a separate report, and not a list of cancelled form instances. Omitted when that run deleted none. |
 | **Fusion review**                  | The reviewer-facing review-required communication: email plus review form. Not a report.                                                                                                               |
 
 ## Review and decision domain

@@ -462,6 +462,109 @@ describe('FormService deleteExistingForms', () => {
         expect(patchFormInstance).toHaveBeenCalledWith(expect.objectContaining({ formInstanceID: 'open-fr' }))
         expect(patchFormInstance).toHaveBeenCalledWith(expect.objectContaining({ formInstanceID: 'open-de' }))
     })
+
+    it('Reset forms retains the deleted definition name', async () => {
+        const run = new FusionRun()
+        const searchFormDefinitionsByTenant = vi.fn().mockResolvedValue({
+            data: { results: [{ id: 'form-1', name: 'Fusion Review - Ada [HR] (hr::ada)' }] },
+        })
+        const searchFormInstancesByTenant = vi.fn().mockResolvedValue({ data: [] })
+        const deleteFormDefinition = vi.fn().mockResolvedValue({})
+        const customFormsMock = { searchFormDefinitionsByTenant, searchFormInstancesByTenant, deleteFormDefinition }
+        const service = new FormService(
+            { fusionFormNamePattern: 'Fusion Review', fusionFormExpirationDays: 7 } as any,
+            { warn: vi.fn(), info: vi.fn(), debug: vi.fn() } as any,
+            { customFormsApi: customFormsMock, call: createFormClientCallMock(customFormsMock) } as any,
+            {} as any,
+            undefined,
+            undefined,
+            run
+        )
+
+        await service.deleteExistingForms()
+
+        expect(run.deletedFusionReviewForms).toEqual([
+            { formDefinitionId: 'form-1', formName: 'Fusion Review - Ada [HR] (hr::ada)' },
+        ])
+    })
+
+    it('Cleanup delete is retained', async () => {
+        const run = new FusionRun()
+        const deleteFormDefinition = vi.fn().mockResolvedValue({})
+        const customFormsMock = { deleteFormDefinition }
+        const service = new FormService(
+            { fusionFormNamePattern: 'Fusion Review', fusionFormExpirationDays: 7 } as any,
+            { warn: vi.fn(), info: vi.fn(), debug: vi.fn() } as any,
+            { customFormsApi: customFormsMock, call: createFormClientCallMock(customFormsMock) } as any,
+            {} as any,
+            undefined,
+            undefined,
+            run
+        )
+        run.rememberFusionReviewFormName('form-done', 'Fusion Review - Done [HR] (hr::done)')
+        run.formsToDelete.add('form-done')
+
+        await service.cleanUpForms()
+        await service.awaitPendingDeleteOperations()
+
+        expect(run.deletedFusionReviewForms).toEqual([
+            { formDefinitionId: 'form-done', formName: 'Fusion Review - Done [HR] (hr::done)' },
+        ])
+    })
+
+    it('Failed delete is not retained', async () => {
+        const run = new FusionRun()
+        const deleteFormDefinition = vi.fn().mockRejectedValue(new Error('delete failed'))
+        const customFormsMock = {
+            searchFormDefinitionsByTenant: vi.fn().mockResolvedValue({
+                data: { results: [{ id: 'form-1', name: 'Fusion Review - Ada [HR] (hr::ada)' }] },
+            }),
+            searchFormInstancesByTenant: vi.fn().mockResolvedValue({ data: [] }),
+            deleteFormDefinition,
+        }
+        const service = new FormService(
+            { fusionFormNamePattern: 'Fusion Review', fusionFormExpirationDays: 7 } as any,
+            { warn: vi.fn(), info: vi.fn(), debug: vi.fn() } as any,
+            { customFormsApi: customFormsMock, call: createFormClientCallMock(customFormsMock) } as any,
+            {} as any,
+            undefined,
+            undefined,
+            run
+        )
+
+        await expect(service.deleteExistingForms()).rejects.toThrow('delete failed')
+        expect(run.deletedFusionReviewForms).toEqual([])
+    })
+
+    it('Cancelled instance is not a deletion', async () => {
+        const run = new FusionRun()
+        const customFormsMock = {
+            searchFormDefinitionsByTenant: vi.fn().mockResolvedValue({
+                data: { results: [{ id: 'form-1', name: 'Fusion Review - Ada [HR] (hr::ada)' }] },
+            }),
+            searchFormInstancesByTenant: vi.fn().mockResolvedValue({
+                data: [{ id: 'open-1', formDefinitionId: 'form-1', state: 'ASSIGNED' }],
+            }),
+            deleteFormDefinition: vi.fn().mockResolvedValue({}),
+            patchFormInstance: vi.fn().mockResolvedValue({ data: { id: 'open-1', state: 'CANCELLED' } }),
+        }
+        const service = new FormService(
+            { fusionFormNamePattern: 'Fusion Review', fusionFormExpirationDays: 7 } as any,
+            { warn: vi.fn(), info: vi.fn(), debug: vi.fn() } as any,
+            { customFormsApi: customFormsMock, call: createFormClientCallMock(customFormsMock) } as any,
+            {} as any,
+            undefined,
+            undefined,
+            run
+        )
+
+        await service.deleteExistingForms()
+
+        expect(run.deletedFusionReviewForms).toEqual([
+            { formDefinitionId: 'form-1', formName: 'Fusion Review - Ada [HR] (hr::ada)' },
+        ])
+        expect(run.deletedFusionReviewForms.map((entry) => entry.formDefinitionId)).not.toContain('open-1')
+    })
 })
 
 describe('FormService stale cleanup with simulated replay time', () => {
@@ -1559,6 +1662,40 @@ describe('FormService createFusionForm', () => {
         expect(run.formsToDelete.has('form-fr')).toBe(false)
         expect(outcome.newReviewInstancesQueued).toBe(1)
     })
+
+    it('Replace-before-recreate delete is retained', async () => {
+        const accountPrefix = 'Fusion Review - Test User [Source A] (source-a-id::native-1)'
+        const formName = `${accountPrefix} [fr]`
+        const { service, run } = buildLocalizedCreateFusionFormHarness({
+            defaultLanguage: 'fr',
+            getRecipientLocale: async () => 'fr',
+            existingDefinitions: [
+                {
+                    id: 'form-fr',
+                    name: formName,
+                    description: 'fusion-locale:3:fr|French description',
+                    formElements: [{ key: 'newIdentity', config: { label: 'Nouvelle identité' } }],
+                },
+            ],
+            existingInstancesByDefinitionId: {
+                'form-fr': [
+                    {
+                        id: 'inst-fr',
+                        formDefinitionId: 'form-fr',
+                        state: 'CANCELLED',
+                        recipients: [{ id: 'reviewer-1' }],
+                    },
+                ],
+            },
+        })
+        run.formsToDelete.add('form-fr')
+        run.rememberFusionReviewFormName('form-fr', formName)
+        const { fusionAccount, reviewer } = buildManagedAccountAndReviewer('reviewer-1')
+
+        await service.createFusionForm(fusionAccount, new Set([reviewer]))
+
+        expect(run.deletedFusionReviewForms).toEqual([{ formDefinitionId: 'form-fr', formName }])
+    })
 })
 
 describe('FormService getOrCreateFormDefinition conflict recovery', () => {
@@ -1607,7 +1744,7 @@ describe('FormService getOrCreateFormDefinition conflict recovery', () => {
         )
 
         expect(result).toEqual(createdDefinition)
-        expect(deleteFormDefinition).toHaveBeenCalledWith('form-existing')
+        expect(deleteFormDefinition).toHaveBeenCalledWith('form-existing', 'Fusion Test Form [fr]')
         expect(buildFusionFormDefinition).toHaveBeenCalledTimes(1)
         expect(refreshFusionFormDefinition).not.toHaveBeenCalled()
     })
