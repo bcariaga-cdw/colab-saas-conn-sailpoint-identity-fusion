@@ -32,7 +32,7 @@ function fernandoRecordingDir(): string {
 
 export function isFernandoRecordingAvailable(): boolean {
     const dir = fernandoRecordingDir()
-    return fs.existsSync(path.join(dir, 'scenario.json')) || fs.existsSync(path.join(dir, 'reports', 'matching-results.json'))
+    return fs.existsSync(path.join(dir, 'scenario.json')) && fs.existsSync(path.join(dir, 'api-log.ndjson'))
 }
 
 function loadFernandoScenarioConfig(): FusionConfig {

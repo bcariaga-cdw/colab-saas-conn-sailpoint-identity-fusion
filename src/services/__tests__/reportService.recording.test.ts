@@ -19,7 +19,14 @@ function loadStep23State() {
     return line.stateAfter as Record<string, any>
 }
 
-describe('ReportService recording: company12926-poc/fernando', () => {
+const RECORDING_DIR = path.join(process.cwd(), 'recordings/company12926-poc/fernando')
+
+/** The recording fixtures are gitignored; skip the suite when they are absent locally. */
+function isRecordingAvailable(): boolean {
+    return fs.existsSync(path.join(RECORDING_DIR, 'steps.ndjson'))
+}
+
+describe.skipIf(!isRecordingAvailable())('ReportService recording: company12926-poc/fernando', () => {
     const reviewerId = '9d86f225e3a24b1a9e3d10d92ec12005'
 
     const createServiceFromRecording = (submitterNameOverride?: string) => {
