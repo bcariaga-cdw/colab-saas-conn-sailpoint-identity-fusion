@@ -1666,7 +1666,7 @@ describe('FusionService — aggregation', () => {
                 FusionAccount.fromFusionAccount({
                     nativeIdentity: 'fusion-prior-1',
                     id: 'isc-fusion-prior-1',
-                    name: 'Prior Fusion Row',
+                    name: 'Prior Fusion Account',
                     sourceName: 'Identity Fusion NG',
                     attributes: { accounts: [linkedKey] },
                 } as unknown as Account)
