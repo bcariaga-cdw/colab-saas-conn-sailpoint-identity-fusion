@@ -1406,3 +1406,63 @@ describe('MappingService prior mapped values', () => {
         expect(laterAccount.attributes.Owner).toBe('NHI nhi.cole')
     })
 })
+
+describe('MappingService nullish identity-bag fallback', () => {
+    const mockLog = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as any
+    const config = {
+        attributeMaps: [
+            { newAttribute: 'department', existingAttributes: ['department'], attributeMerge: AttributeMergeMode.First },
+        ],
+        attributeMerge: AttributeMergeMode.First,
+        sources: [{ name: 'Record Source' }],
+        fusionAccountRefreshThresholdInSeconds: 3600,
+        maxHistoryMessages: 50,
+        resetAccounts: false,
+        resetForms: false,
+        normalAttributeDefinitions: [],
+        uniqueAttributeDefinitions: [],
+    } as any
+
+    beforeAll(() => {
+        FusionAccount.configure(config)
+    })
+
+    function identityOriginAccount(identityAttributes: Record<string, unknown>): FusionAccount {
+        const fusionAccount = FusionAccount.fromFusionAccount({
+            nativeIdentity: 'fusion-identity-fallback',
+            name: 'Fusion Identity Fallback',
+            sourceName: 'Identity Fusion',
+            identityId: 'identity-fallback',
+            attributes: {
+                originSource: 'Identities',
+                originAccount: 'identity-fallback',
+                statuses: ['baseline'],
+            },
+        } as any)
+        fusionAccount.addIdentityLayer({
+            id: 'identity-fallback',
+            name: 'identity-fallback',
+            attributes: identityAttributes,
+        } as any)
+        fusionAccount.setNeedsRefresh(true)
+        return fusionAccount
+    }
+
+    it('does not copy a null identity-bag value into the current bag', () => {
+        const service = new MappingService(config, mockLog)
+        const fusionAccount = identityOriginAccount({ department: null })
+
+        service.mapAttributes(fusionAccount, new FusionRun())
+
+        expect(fusionAccount.attributeBag.current).not.toHaveProperty('department')
+    })
+
+    it('still copies a blank identity-bag value into the current bag', () => {
+        const service = new MappingService(config, mockLog)
+        const fusionAccount = identityOriginAccount({ department: '' })
+
+        service.mapAttributes(fusionAccount, new FusionRun())
+
+        expect(fusionAccount.attributeBag.current.department).toBe('')
+    })
+})

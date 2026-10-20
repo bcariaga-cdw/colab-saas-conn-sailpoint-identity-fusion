@@ -6,7 +6,7 @@ import { FusionRun } from '../../model/fusionRun'
 import { Attributes } from '@sailpoint/connector-sdk'
 import { AttributeMappingConfig } from './types'
 import { processAttributeMapping, buildAttributeMappingConfig, DESIGNATED_SNAPSHOT_UNAVAILABLE } from './helpers'
-import { hasValue, trimStr } from '../../utils/safeRead'
+import { hasValue, isNullish, trimStr } from '../../utils/safeRead'
 import { getManagedAccountSnapshotKey } from '../../utils/velocityAccountSnapshot'
 import { IDENTITIES_SOURCE_NAME } from '../../model/fusionAccount'
 
@@ -184,8 +184,9 @@ export class MappingService {
                 return
             }
             if (processedValue === undefined) {
-                if (fusionAccount.isIdentity && fusionAccount.attributeBag.identity[attribute] !== undefined) {
-                    attributes[attribute] = fusionAccount.attributeBag.identity[attribute]
+                const identityValue = fusionAccount.attributeBag.identity[attribute]
+                if (fusionAccount.isIdentity && !isNullish(identityValue)) {
+                    attributes[attribute] = identityValue
                 } else if (!shouldPreserveCurrentWithoutContext && !this.definitionOwnedNames.has(attribute)) {
                     delete attributes[attribute]
                 }
@@ -255,7 +256,7 @@ export class MappingService {
             attributes[FusionAttribute.History] = [...fusionAccount.history]
         }
 
-        attributeBag.current = attributes
+        fusionAccount.setMappedAttributes(attributes)
     }
 
     private isSystemProvenanceAttribute(name: string): boolean {
