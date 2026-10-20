@@ -55,7 +55,11 @@ export class SchemaService {
      * Filters an attribute bag down to only the attributes defined in the fusion account schema,
      * casting each value to match its schema-defined type and cardinality.
      *
-     * Null and undefined values are omitted. After cast, blank strings and empty arrays are omitted.
+     * Attributes absent from the bag (`undefined`) are omitted so the subset never invents keys
+     * for the rest of the schema. A present `null` is cast per the schema definition and emitted
+     * as `null`; nullish-key omission is enforced on the Fusion account attribute bags at build
+     * time (see `FusionAccount.applyFactorySeed` / `setMappedAttributes`), not here.
+     * After cast, blank strings and empty arrays are omitted.
      * Blank string elements are removed from a multi-valued value first; the attribute is omitted when
      * none remain. `id` and `name` are still included when the emitted value is a blank string.
      * The input attribute bag is never mutated.
@@ -69,10 +73,9 @@ export class SchemaService {
         const fusionAttributes: Attributes = {}
         for (const attribute of this.fusionSchemaAttributeNames) {
             const value = attributes?.[attribute]
-            if (value === null || value === undefined) continue
+            if (value === undefined) continue
             const schemaDef = this.fusionSchemaAttributeMap.get(attribute)
             const casted = schemaDef ? this.castAttributeValue(value, schemaDef) : value
-            if (casted === null || casted === undefined) continue
             const emitted = this.emittedPlatformValue(attribute, casted)
             if (emitted === undefined) continue
             fusionAttributes[attribute] = emitted

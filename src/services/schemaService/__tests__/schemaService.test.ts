@@ -169,15 +169,6 @@ describe('SchemaService', () => {
         })
 
         it('Unset attribute is omitted from subset', () => {
-            const resultWithNull = schemaService.getFusionAttributeSubset({
-                id: '1',
-                name: 'Ada Wong',
-                department: null,
-            })
-
-            expect(resultWithNull).toMatchObject({ id: '1', name: 'Ada Wong' })
-            expect(resultWithNull).not.toHaveProperty('department')
-
             const resultWithAbsent = schemaService.getFusionAttributeSubset({
                 id: '1',
                 name: 'Ada Wong',
@@ -314,13 +305,13 @@ describe('SchemaService', () => {
             expect(result.name).toBe('   ')
         })
 
-        it('Null identity attribute is omitted', () => {
+        it('Present null identity attribute is emitted as null', () => {
             const result = schemaService.getFusionAttributeSubset({
                 id: null,
                 name: 'Ada Wong',
             })
 
-            expect(result).not.toHaveProperty('id')
+            expect(result).toHaveProperty('id', null)
         })
 
         it('Blank required attribute other than id or name is omitted', () => {
@@ -361,7 +352,7 @@ describe('SchemaService', () => {
                 reviews: [],
             })
             expect(input.reviews).toBe(reviews)
-            expect(result).not.toHaveProperty('department')
+            expect(result).toHaveProperty('department', null)
             expect(result).not.toHaveProperty('reviews')
         })
     })
