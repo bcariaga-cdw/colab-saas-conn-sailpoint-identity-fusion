@@ -1,9 +1,27 @@
 import { AccountV2025 as Account, IdentityDocument } from 'sailpoint-api-client'
+import type { Attributes } from '@sailpoint/connector-sdk'
 import { FusionDecision } from './form'
 import type { IdentityInfo } from './fusionAccountTypes'
-import { trimStr } from '../utils/safeRead'
+import { isNullish, trimStr } from '../utils/safeRead'
 
 const IDENTITIES_SOURCE_NAME = 'Identities'
+
+/**
+ * Remove attribute keys whose value is `null` or `undefined` in place.
+ *
+ * Every other value is kept, including `false`, `0`, blank strings, empty arrays,
+ * and arrays that contain null elements. Nullish-key omission for the Fusion account
+ * attribute bags is enforced where the bags are installed, not when they are read.
+ *
+ * @param attributes - The attribute bag to lean out
+ * @returns The same bag instance, for call-site convenience
+ */
+export function omitNullishAttributeKeys(attributes: Attributes): Attributes {
+    for (const key of Object.keys(attributes)) {
+        if (isNullish(attributes[key])) delete attributes[key]
+    }
+    return attributes
+}
 
 /** Whether a Fusion account was seeded from an ISC identity rather than a managed source account. */
 export function isIdentityOriginFusionAccount(

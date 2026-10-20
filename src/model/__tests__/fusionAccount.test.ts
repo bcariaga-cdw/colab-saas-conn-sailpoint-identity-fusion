@@ -122,6 +122,100 @@ describe('FusionAccount', () => {
         })
     })
 
+    describe('1b. Nullish attribute bag leanness', () => {
+        it('Seeded current bag omits nullish keys', () => {
+            const acc = FusionAccount.fromFusionAccount({
+                nativeIdentity: 'fusion-lean-1',
+                sourceName: 'Identity Fusion NG',
+                attributes: { department: null, notes: undefined, name: 'Ada Wong' },
+            } as Account)
+
+            expect(acc.attributeBag.current).not.toHaveProperty('department')
+            expect(acc.attributeBag.current).not.toHaveProperty('notes')
+            expect(acc.attributeBag.current.name).toBe('Ada Wong')
+        })
+
+        it('Seeded previous bag omits nullish keys', () => {
+            const acc = FusionAccount.fromFusionAccount({
+                nativeIdentity: 'fusion-lean-1',
+                sourceName: 'Identity Fusion NG',
+                attributes: { department: null, notes: undefined, name: 'Ada Wong' },
+            } as Account)
+
+            expect(acc.attributeBag.previous).not.toHaveProperty('department')
+            expect(acc.attributeBag.previous).not.toHaveProperty('notes')
+            expect(acc.attributeBag.previous.name).toBe('Ada Wong')
+        })
+
+        it('Seeded bag keeps false, zero, blank strings, and empty arrays', () => {
+            const acc = FusionAccount.fromFusionAccount({
+                nativeIdentity: 'fusion-lean-2',
+                sourceName: 'Identity Fusion NG',
+                attributes: { active: false, employeeNumber: 0, notes: '', reviews: [] },
+            } as Account)
+
+            expect(acc.attributeBag.current.active).toBe(false)
+            expect(acc.attributeBag.current.employeeNumber).toBe(0)
+            expect(acc.attributeBag.current.notes).toBe('')
+            expect(acc.attributeBag.current.reviews).toEqual([])
+        })
+
+        it('strips nullish keys from identity and managed account seeds', () => {
+            const identity = FusionAccount.fromIdentity({
+                id: 'id-lean',
+                name: 'Lean Identity',
+                attributes: { department: null, email: 'lean@example.com' },
+            } as any)
+            expect(identity.attributeBag.current).not.toHaveProperty('department')
+            expect(identity.attributeBag.current.email).toBe('lean@example.com')
+
+            const managed = FusionAccount.fromManagedAccount({
+                id: 'isc-lean',
+                sourceId: 'src-a',
+                nativeIdentity: 'nat-lean',
+                sourceName: 'Source A',
+                attributes: { department: null, name: 'Managed Lean' },
+            } as any)
+            expect(managed.attributeBag.current).not.toHaveProperty('department')
+            expect(managed.attributeBag.previous).not.toHaveProperty('department')
+            expect(managed.attributeBag.current.name).toBe('Managed Lean')
+        })
+
+        it('Replacing the current bag omits nullish keys', () => {
+            const acc = FusionAccount.fromIdentity({ id: 'id-lean', name: 'Lean Identity' } as any)
+
+            acc.setMappedAttributes({ department: null, notes: undefined, name: 'Ada Wong' })
+
+            expect(acc.attributeBag.current).not.toHaveProperty('department')
+            expect(acc.attributeBag.current).not.toHaveProperty('notes')
+            expect(acc.attributeBag.current.name).toBe('Ada Wong')
+        })
+
+        it('keeps raw null values in the identity bag and source snapshots', () => {
+            const identity = { id: 'id-raw', name: 'Raw Identity', attributes: { department: null } }
+            const identityAccount = FusionAccount.fromIdentity(identity as any)
+            identityAccount.addIdentityLayer(identity as any)
+            expect(identityAccount.attributeBag.identity).toHaveProperty('department', null)
+
+            const managedAccount = FusionAccount.fromIdentity({ id: 'id-raw-2', name: 'Raw Identity 2' } as any)
+            const run = new FusionRun()
+            run.managedAccountsById.set('src-a::nat-raw', {
+                id: 'isc-raw',
+                sourceId: 'src-a',
+                nativeIdentity: 'nat-raw',
+                sourceName: 'Source A',
+                attributes: { department: null },
+            } as any)
+            run.managedAccountsByIdentityId.set('id-raw-2', new Set(['src-a::nat-raw']))
+
+            managedAccount.addManagedAccountLayer(run)
+
+            const snapshot = managedAccount.attributeBag.sources.get('Source A')?.[0] as any
+            expect(snapshot).toBeDefined()
+            expect(snapshot.department).toBeNull()
+        })
+    })
+
     describe('2. Attribute bag & layer merging', () => {
         it('addIdentityLayer merges identity layer', () => {
             const identity: IdentityDocument = {

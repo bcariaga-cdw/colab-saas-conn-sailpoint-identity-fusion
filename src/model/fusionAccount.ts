@@ -7,7 +7,7 @@ import { FusionMatch } from '../services/matchingService'
 import { FusionAccountKind } from './fusionAccountTypes'
 import { StatusEntitlement } from './statusEntitlement'
 import type { FusionAttributeBag, IdentityInfo } from './fusionAccountTypes'
-import { buildIdentityInfo, isIdentityOriginFusionAccount } from './fusionAccountUtils'
+import { buildIdentityInfo, isIdentityOriginFusionAccount, omitNullishAttributeKeys } from './fusionAccountUtils'
 import type { FusionRun } from './fusionRun'
 import { FusionCollections } from './fusionCollections'
 import { FusionCorrelation } from './fusionCorrelation'
@@ -111,10 +111,10 @@ export class FusionAccount {
         if (seed.sourceName) this.sourceNameValue = seed.sourceName
         if (seed.isMachine === true) this.isMachine = true
         if (seed.attributeBagCurrent !== undefined) {
-            this.attributeBagValue.current = seed.attributeBagCurrent
+            this.attributeBagValue.current = omitNullishAttributeKeys(seed.attributeBagCurrent)
         }
         if (seed.attributeBagPrevious !== undefined) {
-            this.attributeBagValue.previous = seed.attributeBagPrevious
+            this.attributeBagValue.previous = omitNullishAttributeKeys(seed.attributeBagPrevious)
         }
     }
 
@@ -354,7 +354,7 @@ export class FusionAccount {
     }
 
     setMappedAttributes(attributes: Attributes): void {
-        this.attributeBagValue.current = attributes
+        this.attributeBagValue.current = omitNullishAttributeKeys(attributes)
     }
 
     // ============================================================================
