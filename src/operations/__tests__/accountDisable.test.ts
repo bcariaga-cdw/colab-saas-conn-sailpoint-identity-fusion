@@ -28,6 +28,13 @@ function createRegistry() {
 
     const log = registry.log as any
     log.crash = vi.fn()
+    log.detail = vi.fn()
+
+    const definition = registry.definition as any
+    definition.initializeCounters = vi.fn().mockResolvedValue(undefined)
+    definition.hasMissingUniqueAttribute = vi.fn().mockReturnValue(true)
+    definition.registerUniqueValuesFromManagedSourceAccounts = vi.fn()
+    definition.refreshUniqueAttributes = vi.fn().mockResolvedValue(undefined)
 
     return registry
 }
@@ -67,6 +74,8 @@ describe('accountDisable', () => {
                 log: expect.any(Object),
             })
         )
+        expect(registry.definition.refreshUniqueAttributes).toHaveBeenCalledWith(fusionAccount)
+        expect(registry.definition.registerUniqueValuesFromManagedSourceAccounts).not.toHaveBeenCalled()
         expect(fusionAccount.disable).toHaveBeenCalledTimes(1)
         expect(registry.fusion.normalizePendingFormStateForOutput).toHaveBeenCalledTimes(1)
         expect(registry.res.send).toHaveBeenCalledWith({ id: 'isc-disabled' })

@@ -2761,6 +2761,56 @@ describe('FusionService — aggregation', () => {
         })
     })
 
+    describe('forEachISCAccount unique refresh', () => {
+        function registerOutputAccount(needsRefresh: boolean) {
+            const account = FusionAccount.fromManagedAccount({
+                id: 'acct-blank-uid',
+                name: 'Blank UID',
+                sourceId: 'src-1',
+                nativeIdentity: 'blank-uid',
+                sourceName: 'Source 1',
+                attributes: {},
+            } as Account)
+            account.setNeedsRefresh(needsRefresh)
+            account.setNeedsReset(false)
+            ctx.fusionService.setFusionAccount(account)
+            vi.spyOn(ctx.fusionService as any, 'getISCAccount').mockResolvedValue({
+                key: account.managedKey,
+                attributes: {},
+                disabled: false,
+            })
+            ctx.mockDefinitionService.refreshUniqueAttributes = vi.fn().mockResolvedValue(undefined)
+            return account
+        }
+
+        it('refreshes unique attributes when they are blank even if needsRefresh is false', async () => {
+            const account = registerOutputAccount(false)
+            ctx.mockDefinitionService.hasMissingUniqueAttribute = vi.fn().mockReturnValue(true)
+
+            await ctx.fusionService.forEachISCAccount(() => undefined, true)
+
+            expect(ctx.mockDefinitionService.refreshUniqueAttributes).toHaveBeenCalledWith(account)
+        })
+
+        it('skips unique refresh when attributes are populated and the account is unchanged', async () => {
+            registerOutputAccount(false)
+            ctx.mockDefinitionService.hasMissingUniqueAttribute = vi.fn().mockReturnValue(false)
+
+            await ctx.fusionService.forEachISCAccount(() => undefined, true)
+
+            expect(ctx.mockDefinitionService.refreshUniqueAttributes).not.toHaveBeenCalled()
+        })
+
+        it('still refreshes unique attributes when needsRefresh is true', async () => {
+            const account = registerOutputAccount(true)
+            ctx.mockDefinitionService.hasMissingUniqueAttribute = vi.fn().mockReturnValue(false)
+
+            await ctx.fusionService.forEachISCAccount(() => undefined, true)
+
+            expect(ctx.mockDefinitionService.refreshUniqueAttributes).toHaveBeenCalledWith(account)
+        })
+    })
+
     describe('forEachISCAccount performance behavior', () => {
         it('uses bounded concurrency while preserving output order', async () => {
             const sentKeys: string[] = []

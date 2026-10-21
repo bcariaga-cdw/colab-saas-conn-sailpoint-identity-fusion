@@ -29,6 +29,13 @@ function createRegistry() {
     const log = registry.log as any
     log.crash = vi.fn()
     log.metric = vi.fn()
+    log.detail = vi.fn()
+
+    const definition = registry.definition as any
+    definition.initializeCounters = vi.fn().mockResolvedValue(undefined)
+    definition.hasMissingUniqueAttribute = vi.fn().mockReturnValue(false)
+    definition.registerUniqueValuesFromManagedSourceAccounts = vi.fn()
+    definition.refreshUniqueAttributes = vi.fn().mockResolvedValue(undefined)
 
     return registry
 }
@@ -68,7 +75,26 @@ describe('accountRead', () => {
         )
         expect(registry.fusion.normalizePendingFormStateForOutput).toHaveBeenCalledTimes(1)
         expect(registry.fusion.getISCAccount).toHaveBeenCalledWith(fusionAccount)
+        expect(registry.definition.refreshUniqueAttributes).toHaveBeenCalledWith(fusionAccount)
+        expect(registry.sources.fetchFusionAccounts).not.toHaveBeenCalled()
         expect(registry.res.send).toHaveBeenCalledWith({ id: 'isc-1' })
+    })
+
+    it('registers tenant unique values before calculating a blank unique attribute', async () => {
+        const registry = createRegistry()
+        const fusionAccount = { managedKey: 'fusion-1', name: 'Fusion User' }
+        ;(rebuildFusionAccount as Mock).mockResolvedValue(fusionAccount)
+        ;(registry.definition as any).hasMissingUniqueAttribute.mockReturnValue(true)
+        ;(registry.sources as any).fusionAccounts = [{ attributes: { UID: 'taken' } }]
+
+        await accountRead(registry, { identity: 'fusion-1', schema: { attributes: [] } } as any)
+
+        expect(registry.definition.initializeCounters).toHaveBeenCalledTimes(1)
+        expect(registry.sources.fetchFusionAccounts).toHaveBeenCalledTimes(1)
+        expect(registry.definition.registerUniqueValuesFromManagedSourceAccounts).toHaveBeenCalledWith(
+            (registry.sources as any).fusionAccounts
+        )
+        expect(registry.definition.refreshUniqueAttributes).toHaveBeenCalledWith(fusionAccount)
     })
 
     it('rejects when identity is missing', async () => {

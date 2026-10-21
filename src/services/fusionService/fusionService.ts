@@ -1107,6 +1107,19 @@ export class FusionService {
         )
     }
 
+    /**
+     * Unique refresh runs for accounts that are already refresh- or reset-eligible,
+     * and also when a Unique attribute is blank. Populated values are preserved
+     * inside `refreshUniqueAttributes` unless the account is being reset.
+     */
+    private accountNeedsUniqueRefresh(account: FusionAccount): boolean {
+        return (
+            account.needsRefresh ||
+            account.needsReset ||
+            this.definitionService.hasMissingUniqueAttribute(account)
+        )
+    }
+
     private async processOutputBatch(
         batch: FusionAccount[],
         refreshUniqueAttributes: boolean,
@@ -1114,7 +1127,7 @@ export class FusionService {
     ): Promise<number> {
         const outputBatch = await Promise.all(
             batch.map(async (account) => {
-                if (refreshUniqueAttributes && account.needsRefresh) {
+                if (refreshUniqueAttributes && this.accountNeedsUniqueRefresh(account)) {
                     await this.definitionService.refreshUniqueAttributes(account)
                 }
                 return this.getISCAccount(account, false)

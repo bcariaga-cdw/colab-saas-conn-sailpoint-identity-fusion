@@ -291,6 +291,25 @@ describe('DefinitionService.refreshUniqueAttributes preservation', () => {
         return fusionAccount
     }
 
+    it('generates a missing unique attribute when needsRefresh is false', async () => {
+        const service = createService([
+            {
+                name: 'UID',
+                expression: 'generated',
+                useIncrementalCounter: false,
+                normalize: false,
+                spaces: false,
+                trim: false,
+            },
+        ])
+
+        const account = createFusionAccount({ UID: '   ' })
+        account.needsRefresh = false
+        await service.refreshUniqueAttributes(account)
+
+        expect(account.attributes.UID).toBe('generated')
+    })
+
     it('preserves existing unique values when needsRefresh is true but needsReset is false', async () => {
         const service = createService([
             {

@@ -10,7 +10,8 @@ The Account Disable operation disables a fusion account. This typically prevents
 flowchart TD
     Start([Account disable invoked]) --> Setup[Load sources + schema]
     Setup --> Rebuild[Rebuild fusion account]
-    Rebuild --> Disable[Set disabled status]
+    Rebuild --> Unique[Calculate blank unique attributes]
+    Unique --> Disable[Set disabled status]
     Disable --> Out([Return disabled ISC account])
 ```
 
@@ -29,14 +30,19 @@ flowchart TD
         - `refreshDefinition`: True — re-evaluates Velocity template definitions.
         - `resetDefinition`: False — unique attribute values are preserved.
 
-3.  **Disable**:
+3.  **Blank unique attributes**:
+    - Blank Unique attributes are calculated before the account is disabled.
+    - Populated Unique values are preserved. This is not a unique reset.
+    - Disable does not fetch or pre-process all Fusion accounts, so collision checks for a newly calculated value are limited to values already registered on this account.
+
+4.  **Disable**:
     - Sets the account's status to disabled.
 
-4.  **Output Generation**:
+5.  **Output Generation**:
     - Returns the updated, disabled ISC account.
 
 ## Behavior Notes
 
-- **Unique attributes are NOT reset on disable**: The disable operation uses `resetDefinition: false`, so existing unique attribute values (e.g. usernames) are preserved. The actual unique attribute reset happens on the subsequent **enable** operation, which sets `resetDefinition: true` to regenerate collision-free values.
+- **Unique attributes are NOT reset on disable**: The disable operation uses `resetDefinition: false`, so existing unique attribute values (e.g. usernames) are preserved. Blank Unique attributes are calculated. The actual unique attribute reset happens on the subsequent **enable** operation, which sets `resetDefinition: true` to regenerate collision-free values.
 - **nativeIdentity and name are preserved**: The `nativeIdentity` and account `name` are never changed by any operation after creation.
 

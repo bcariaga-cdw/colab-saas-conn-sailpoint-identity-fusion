@@ -1,6 +1,7 @@
 import { ConnectorError, StdAccountDisableInput } from '@sailpoint/connector-sdk'
 import { ServiceRegistry } from '../services/serviceRegistry'
 import { rebuildFusionAccount } from './helpers/rebuildFusionAccount'
+import { refreshBlankUniqueAttributes } from './helpers/refreshBlankUniqueAttributes'
 import { assert } from '../utils/assert'
 import { ATTR_OPS_REFRESH } from '../services/definitionService/types'
 
@@ -15,14 +16,15 @@ import { ATTR_OPS_REFRESH } from '../services/definitionService/types'
  * Processing Flow:
  * 1. SETUP: Load sources and schema
  * 2. REBUILD: Reconstruct the fusion account with refreshed mapped and generated attributes
- * 3. DISABLE: Mark the fusion account as disabled
- * 4. OUTPUT: Generate and return the updated ISC account representation
+ * 3. UNIQUE: Calculate blank unique attributes without resetting populated values
+ * 4. DISABLE: Mark the fusion account as disabled
+ * 5. OUTPUT: Generate and return the updated ISC account representation
  *
  * @param serviceRegistry - Service registry providing access to all connector services
  * @param input - SDK input containing the account identity to disable
  */
 export const accountDisable = async (serviceRegistry: ServiceRegistry, input: StdAccountDisableInput) => {
-    const { log, fusion, sources, schemas, res, identities } = serviceRegistry
+    const { log, fusion, sources, schemas, definition, res, identities } = serviceRegistry
 
     try {
         log.detail({ identity: input.identity, action: 'disabling account' })
@@ -44,6 +46,10 @@ export const accountDisable = async (serviceRegistry: ServiceRegistry, input: St
         assert(fusionAccount, `Fusion account not found for identity: ${input.identity}`)
         log.debug(`Found fusion account: ${fusionAccount.name || fusionAccount.managedKey}`)
         log.stepEnd('rebuild-fusion-account')
+
+        log.stepStart('refresh-unique-attributes')
+        await refreshBlankUniqueAttributes(fusionAccount, { definition, sources, log }, false)
+        log.stepEnd('refresh-unique-attributes')
 
         log.stepStart('disable-fusion-account')
         fusionAccount.disable()

@@ -15,6 +15,21 @@ The account-read operation SHALL load sources and schema, rebuild the target Fus
 - **THEN** the connector SHALL rebuild the Fusion account with attribute operations REFRESH
 - **AND** SHALL return the ISC account via `res.send`
 
+#### Scenario: Blank unique attribute is calculated without reset
+
+- **GIVEN** an existing Fusion account with a blank Unique attribute
+- **WHEN** the account-read operation is invoked with valid read input
+- **THEN** the connector SHALL register Unique values from Fusion accounts before generation
+- **AND** SHALL calculate the blank Unique attribute
+- **AND** SHALL NOT reset Unique attributes that already have a value
+
+#### Scenario: Populated unique attributes do not trigger a tenant unique-value load
+
+- **GIVEN** an existing Fusion account whose Unique attributes are populated
+- **WHEN** the account-read operation is invoked
+- **THEN** the connector SHALL NOT fetch all Fusion accounts solely to register Unique values
+- **AND** SHALL NOT reset existing Unique values
+
 #### Scenario: Missing identity fails with observable message
 
 - **GIVEN** account-read input without an identity value

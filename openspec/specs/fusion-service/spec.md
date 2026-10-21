@@ -618,7 +618,21 @@ During `initializeManagedAccountProcessing`, `FusionService.validateManagedSourc
 
 ### Requirement: Unique JIT on Output does not hold the unique registry lock during Velocity evaluation
 
-`FusionService.forEachISCAccount` SHALL continue to call `refreshUniqueAttributes` immediately before `getISCAccount` for accounts with `needsRefresh` when unique refresh is enabled. Unique template evaluation SHALL follow `definition-service` (registry lock does not cover Velocity). This requirement does not allow calling `listISCAccounts` on the account-list output path, eager Unique generation during Process, or skipping in-memory counter advance during dry-run Output.
+`FusionService.forEachISCAccount` SHALL call `refreshUniqueAttributes` immediately before `getISCAccount` when unique refresh is enabled and the Fusion account has `needsRefresh`, `needsReset`, or at least one blank Unique attribute. It SHALL NOT call `refreshUniqueAttributes` for an account whose Unique attributes are all populated and that does not need refresh or reset. Unique template evaluation SHALL follow `definition-service` (registry lock does not cover Velocity). This requirement does not allow calling `listISCAccounts` on the account-list output path, eager Unique generation during Process, or skipping in-memory counter advance during dry-run Output. Populated Unique values SHALL still be preserved unless the account is being reset.
+
+#### Scenario: Blank unique attribute is calculated without needsRefresh
+
+- **GIVEN** unique refresh is enabled
+- **AND** a Fusion account with `needsRefresh` false and a blank Unique attribute
+- **WHEN** Output iterates that account via `forEachISCAccount`
+- **THEN** `refreshUniqueAttributes` SHALL run immediately before serialization
+
+#### Scenario: Populated unique attributes skip unique refresh when unchanged
+
+- **GIVEN** unique refresh is enabled
+- **AND** a Fusion account with `needsRefresh` false, `needsReset` false, and every Unique attribute populated
+- **WHEN** Output iterates that account via `forEachISCAccount`
+- **THEN** `refreshUniqueAttributes` SHALL NOT run
 
 #### Scenario: JIT Unique generation still precedes serialize
 

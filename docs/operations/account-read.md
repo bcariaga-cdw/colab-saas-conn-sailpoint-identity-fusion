@@ -15,7 +15,8 @@ flowchart TD
     Cascade -- No --> Fetch
     Agg --> Fetch[Fetch identity + managed accounts]
     Fetch --> Map[Re-run Map + Define]
-    Map --> Out([Return fresh ISC account])
+    Map --> Unique[Calculate blank unique attributes]
+    Unique --> Out([Return fresh ISC account])
 ```
 
 
@@ -39,7 +40,12 @@ flowchart TD
         - `refreshDefinition`: True — re-evaluates Velocity template definitions.
         - `resetDefinition`: False — does NOT clear existing unique values before processing.
 
-3.  **Output Generation**:
+3.  **Blank unique attributes**:
+    - After rebuild, blank Unique attributes are calculated.
+    - Populated Unique values are preserved.
+    - When any Unique attribute is blank, Fusion accounts are loaded and their Unique values are registered first so the new value does not collide with another account.
+
+4.  **Output Generation**:
     - Normalizes any pending form state for output (`fusion.normalizePendingFormStateForOutput()`).
     - Converts the rebuilt fusion account into an ISC account object via `fusion.getISCAccount(fusionAccount)`.
     - Sends the result back to ISC and emits a `log.timer().end(...)` line on success.

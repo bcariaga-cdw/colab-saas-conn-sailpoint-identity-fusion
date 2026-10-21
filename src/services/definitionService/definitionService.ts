@@ -181,6 +181,17 @@ export class DefinitionService {
         onStats?.({ evaluated, skipped })
     }
 
+    /**
+     * True when a configured Unique definition has no usable value on this account.
+     * Blank means null, undefined, or whitespace-only — the same check used when
+     * deciding whether to generate a Unique value.
+     */
+    public hasMissingUniqueAttribute(fusionAccount: FusionAccount): boolean {
+        return this.uniqueDefinitions.some(
+            (def) => !isValidAttributeValue(fusionAccount.attributes[def.name])
+        )
+    }
+
     public async refreshUniqueAttributes(fusionAccount: FusionAccount): Promise<void> {
         if (fusionAccount.type === FusionAccountKind.Decision && !fusionAccount.needsReset) return
         if (fusionAccount.isMatch) return
@@ -190,12 +201,8 @@ export class DefinitionService {
             return
         }
 
-        const hasMissingUniqueAttribute = this.uniqueDefinitions.some(
-            (def) => !isValidAttributeValue(fusionAccount.attributes[def.name])
-        )
-
         const shouldRefresh =
-            fusionAccount.needsRefresh || fusionAccount.needsReset || hasMissingUniqueAttribute
+            fusionAccount.needsRefresh || fusionAccount.needsReset || this.hasMissingUniqueAttribute(fusionAccount)
         if (!shouldRefresh) {
             this.ensureCoreSchemaAttributes(fusionAccount)
             return
