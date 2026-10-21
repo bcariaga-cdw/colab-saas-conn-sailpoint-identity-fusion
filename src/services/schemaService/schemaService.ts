@@ -400,8 +400,15 @@ export class SchemaService {
     }
 
     /**
-     * Builds the fusion account schema from managed sources, attribute mappings,
-     * and attribute definitions. Used for schema discovery.
+     * Builds the fusion account schema from attribute definitions, attribute mappings,
+     * managed account source schemas, and identity schema attributes (when identity scope
+     * is enabled). Used for schema discovery.
+     *
+     * Attribute sources are merged in that order, so case-insensitive name collisions
+     * resolve in favor of the earliest source: definitions outrank mappings, both outrank
+     * managed account source schemas, and identity schema attributes are considered last.
+     * Fusion base structural attributes precede all of these; reverse-correlation
+     * attributes follow them.
      *
      * @returns The dynamically built AccountSchema
      */
@@ -450,11 +457,14 @@ export class SchemaService {
             }
         }
 
+        // Attribute-source order defines case-insensitive collision precedence: dedupe keeps the
+        // first variant, so user-configured definitions outrank mappings, both outrank managed
+        // account source schemas, and identity schema attributes are considered last.
         fusionAttributes.forEach(pushAttribute)
+        attributeDefinitionAttributes.forEach(pushAttribute)
+        attributeMappingAttributes.forEach(pushAttribute)
         accountSchemaAttributes.forEach(pushAttribute)
         identitySchemaAttributes.forEach(pushAttribute)
-        attributeMappingAttributes.forEach(pushAttribute)
-        attributeDefinitionAttributes.forEach(pushAttribute)
 
         // Add reverse correlation attributes from sources configured with correlationMode 'reverse'
         for (const sc of this.sourceConfigs) {

@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates u
 
 ---
 
+## 2026-10-21 · v2.2.0
+
+### 🐛 Fixes
+
+- **Schema discovery prefers your configured attributes** — When the same attribute name appears in more than one place with different casing, Discover Schema now keeps the variant from your configuration first: an attribute definition wins over an attribute mapping, both win over a managed source attribute, and a managed source attribute wins over an identity schema attribute. Identity schema attributes are still included only when identity scope is enabled. Previously the merge order was incidental, so an auto-discovered source attribute could override the description, type, or cardinality you configured.
+
+---
+
 ## 2026-10-19 · v2.2.0
 
 ### ✨ New Features

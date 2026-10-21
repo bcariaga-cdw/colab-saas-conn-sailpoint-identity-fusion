@@ -1,4 +1,5 @@
 import { SchemaService } from '../schemaService'
+import { fusionAccountSchemaAttributes } from '../../../data/schema'
 
 describe('SchemaService', () => {
     let schemaService: SchemaService
@@ -148,6 +149,126 @@ describe('SchemaService', () => {
             expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining('Failed to fetch identity attributes'))
             // The schema builds successfully without the identity attributes
             expect(schema.attributes.length).toBeGreaterThan(0) // Has static/fusion attributes
+        })
+
+        const normalDefinition = (name: string, expression = `$${name}`) => ({
+            name,
+            expression,
+            normalize: false,
+            spaces: false,
+            trim: false,
+            refresh: false,
+        })
+
+        it('definition outranks a managed source attribute', async () => {
+            mockConfig.normalAttributeDefinitions = [normalDefinition('department')]
+            schemaService = new SchemaService(mockConfig, mockLog, mockSources, mockIdentities)
+            mockSources.managedSources = [{ id: 'src-1', name: 'Source 1' }]
+            vi.spyOn(schemaService as any, 'fetchAccountSchema').mockResolvedValue({
+                displayAttribute: 'name',
+                identityAttribute: 'id',
+                attributes: [{ name: 'Department', type: 'string', multi: false }],
+            })
+
+            const schema = await schemaService.buildDynamicSchema()
+            const matches = schema.attributes.filter((a) => a.name.toLowerCase() === 'department')
+
+            expect(matches).toHaveLength(1)
+            expect(matches[0].name).toBe('department')
+            expect(matches[0].description).toBe('Created from expression: $department')
+        })
+
+        it('definition outranks a mapping', async () => {
+            mockConfig.normalAttributeDefinitions = [normalDefinition('employeeId')]
+            mockConfig.attributeMaps = [{ newAttribute: 'EmployeeId', existingAttributes: ['emp_id'] }]
+            schemaService = new SchemaService(mockConfig, mockLog, mockSources, mockIdentities)
+
+            const schema = await schemaService.buildDynamicSchema()
+            const matches = schema.attributes.filter((a) => a.name.toLowerCase() === 'employeeid')
+
+            expect(matches).toHaveLength(1)
+            expect(matches[0].name).toBe('employeeId')
+            expect(matches[0].description).toBe('Created from expression: $employeeId')
+        })
+
+        it('mapping outranks a managed source attribute', async () => {
+            mockConfig.attributeMaps = [{ newAttribute: 'costCenter', existingAttributes: ['cc'] }]
+            schemaService = new SchemaService(mockConfig, mockLog, mockSources, mockIdentities)
+            mockSources.managedSources = [{ id: 'src-1', name: 'Source 1' }]
+            vi.spyOn(schemaService as any, 'fetchAccountSchema').mockResolvedValue({
+                displayAttribute: 'name',
+                identityAttribute: 'id',
+                attributes: [{ name: 'CostCenter', type: 'string', multi: false }],
+            })
+
+            const schema = await schemaService.buildDynamicSchema()
+            const matches = schema.attributes.filter((a) => a.name.toLowerCase() === 'costcenter')
+
+            expect(matches).toHaveLength(1)
+            expect(matches[0].name).toBe('costCenter')
+            expect(matches[0].description).toBe('Created from cc')
+        })
+
+        it('identity schema attributes participate only when identity scope is enabled', async () => {
+            mockConfig.includeIdentities = false
+            schemaService = new SchemaService(mockConfig, mockLog, mockSources, mockIdentities)
+
+            const schema = await schemaService.buildDynamicSchema()
+
+            expect(mockIdentities.fetchIdentitySchemaAttributes).not.toHaveBeenCalled()
+            expect(schema.attributes.find((a) => a.name === 'empId')).toBeUndefined()
+        })
+
+        it('full source order produces no duplicate lowercase names and keeps fusion base attributes', async () => {
+            mockConfig.normalAttributeDefinitions = [normalDefinition('shared')]
+            mockConfig.attributeMaps = [{ newAttribute: 'SHARED', existingAttributes: ['shared_src'] }]
+            schemaService = new SchemaService(mockConfig, mockLog, mockSources, mockIdentities)
+            mockSources.managedSources = [{ id: 'src-1', name: 'Source 1' }]
+            vi.spyOn(schemaService as any, 'fetchAccountSchema').mockResolvedValue({
+                displayAttribute: 'name',
+                identityAttribute: 'id',
+                attributes: [{ name: 'Shared', type: 'string', multi: false }],
+            })
+            mockIdentities.fetchIdentitySchemaAttributes.mockResolvedValue([
+                { name: 'shared', type: 'string', multi: false, entitlement: false },
+            ])
+
+            const schema = await schemaService.buildDynamicSchema()
+
+            const lowerNames = schema.attributes.map((a) => a.name!.toLowerCase())
+            expect(new Set(lowerNames).size).toBe(lowerNames.length)
+            for (const base of fusionAccountSchemaAttributes) {
+                expect(schema.attributes.some((a) => a.name === base.name)).toBe(true)
+            }
+            // The definition outranks the mapping, managed source, and identity variants.
+            const shared = schema.attributes.filter((a) => a.name.toLowerCase() === 'shared')
+            expect(shared).toHaveLength(1)
+            expect(shared[0].name).toBe('shared')
+        })
+
+        it('reverse-correlation attributes have the lowest precedence', async () => {
+            mockConfig.sources = [
+                {
+                    id: 'src-1',
+                    name: 'Source 1',
+                    correlationMode: 'reverse',
+                    correlationAttribute: 'costCenter',
+                },
+            ]
+            schemaService = new SchemaService(mockConfig, mockLog, mockSources, mockIdentities)
+            mockSources.managedSources = [{ id: 'src-1', name: 'Source 1' }]
+            vi.spyOn(schemaService as any, 'fetchAccountSchema').mockResolvedValue({
+                displayAttribute: 'name',
+                identityAttribute: 'id',
+                attributes: [{ name: 'CostCenter', type: 'string', multi: false }],
+            })
+
+            const schema = await schemaService.buildDynamicSchema()
+            const matches = schema.attributes.filter((a) => a.name.toLowerCase() === 'costcenter')
+
+            expect(matches).toHaveLength(1)
+            expect(matches[0].name).toBe('CostCenter')
+            expect(matches[0].description).toBe('CostCenter from Source 1')
         })
     })
 

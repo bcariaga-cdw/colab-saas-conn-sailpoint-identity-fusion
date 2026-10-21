@@ -11,8 +11,11 @@ flowchart TD
     Start([Discover schema invoked]) --> Load[Load managed sources]
     Load --> Build[Build dynamic schema]
     Build --> Base[Merge base Fusion attributes]
-    Base --> Managed[Add managed source schema attributes]
-    Managed --> Dedup[Deduplicate case-insensitively]
+    Base --> Defs[Add attribute definition attributes]
+    Defs --> Maps[Add attribute mapping attributes]
+    Maps --> Managed[Add managed account source schema attributes]
+    Managed --> Identity[Add identity schema attributes when identity scope is enabled]
+    Identity --> Dedup[Deduplicate case-insensitively]
     Dedup --> Out([Return schema to ISC])
 ```
 
@@ -26,8 +29,8 @@ flowchart TD
 
 2.  **Schema Build**:
     - Calls `schemas.buildDynamicSchema()`.
-    - Combines the fixed base fusion attributes (identity, name, statuses, actions, accounts, etc.) with attributes derived from managed source schemas and identity attributes.
-    - Deduplicates attribute names case-insensitively (ISC treats names as case-insensitive). When the same logical attribute appears with different casing (e.g. `FirstName` and `firstname`), the **first** variant in merge order is kept.
+    - Combines attributes in a fixed precedence order: the base fusion attributes (identity, name, statuses, actions, accounts, etc.), then attribute definitions, then attribute mappings, then managed account source schemas, then identity schema attributes when identity scope is enabled.
+    - Deduplicates attribute names case-insensitively (ISC treats names as case-insensitive). When the same logical attribute appears with different casing (e.g. `FirstName` and `firstname`), the **first** variant in merge order is kept, so an earlier source wins a collision: a definition outranks a mapping, both outrank a managed source attribute, and a managed source attribute outranks an identity schema attribute. Reverse-correlation attributes are appended last.
 
 3.  **Output**:
     - Returns the generated schema object to ISC.
