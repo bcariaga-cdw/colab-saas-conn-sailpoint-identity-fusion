@@ -52,6 +52,7 @@ Both reset flags **automatically turn off after one aggregation**.
 
 - Clears persisted Fusion account state (attributes, history, processing flags)
 - Removes the `processing` connector attribute when that option is present on the source
+- Clears the per-source **Aggregation batch size** cumulative count so onboarding batching restarts from the first accounts
 - Emits zero accounts on the reset run; the following aggregation rebuilds from scratch
 - Does NOT delete source accounts, identities, or review forms (unless **Reset forms?** is also enabled)
 

@@ -250,7 +250,7 @@
                                             "label": "Aggregation batch size",
                                             "type": "number",
                                             "required": false,
-                                            "helpKey": "Limit the number of accounts processed per run."
+                                            "helpKey": "Onboarding only: cap the managed accounts processed per run for a large, static set. Not for regular operation — the cumulative limit assumes accounts are not added or removed between runs."
                                         }
                                     ]
                                 },

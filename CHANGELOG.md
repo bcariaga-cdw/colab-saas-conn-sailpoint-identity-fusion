@@ -12,6 +12,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates u
 
 - **Schema discovery prefers your configured attributes** — When the same attribute name appears in more than one place with different casing, Discover Schema now keeps the variant from your configuration first: an attribute definition wins over an attribute mapping, both win over a managed source attribute, and a managed source attribute wins over an identity schema attribute. Identity schema attributes are still included only when identity scope is enabled. Previously the merge order was incidental, so an auto-discovered source attribute could override the description, type, or cardinality you configured.
 
+### 📚 Documentation
+
+- **Aggregation batch size is documented as onboarding-only** — The ISC field help, the **Source Settings** use guide, the glossary, and the ubiquitous-language spec now state that the per-source **Aggregation batch size** is meant to load a large, **static** set of managed accounts during onboarding, not for regular operation. Each run resumes from a stored cumulative count, so accounts added or removed between runs shift the offset and the connector can skip or re-read accounts. Leave the field empty for regular operation.
+
 ---
 
 ## 2026-10-19 · v2.2.0
