@@ -269,4 +269,35 @@ describe('form HTML helpers', () => {
         })
         expect(html).toContain('merge this account')
     })
+
+    it('DESCRIPTION HTML renders on a self-contained light surface for dark mode', () => {
+        const accountHtml = renderAccountDisplayHtml({
+            accountLabel: 'Pat Lee',
+            sourceName: 'HR',
+            attributes: { email: 'pat@example.com' },
+            fusionFormAttributes: ['email'],
+            locale: 'en',
+        })
+
+        // Each fragment is wrapped in an opaque card so dark text stays readable
+        // against ISC's dark-theme surface.
+        expect(accountHtml).toMatch(/^<div style="[^"]*background:#ffffff/)
+        // Attribute value cells carry their own opaque background instead of
+        // letting the host theme show through.
+        expect(accountHtml).toMatch(/<td style="[^"]*background:#ffffff/)
+    })
+
+    it('Candidate and identity details HTML are wrapped in a light card', () => {
+        const candidate: Candidate = {
+            id: 'ident-1',
+            name: 'Sam User',
+            attributes: { email: 'sam@example.com' },
+            scores: [{ attribute: 'email', algorithm: 'lig3', score: 90, fusionScore: 50, isMatch: true }],
+        }
+
+        expect(renderCandidatesDisplayHtml([candidate], 'en')).toMatch(/^<div style="[^"]*background:#ffffff/)
+        expect(renderIdentityDetailsHtml(candidate, ['email'], 'en')).toMatch(/^<div style="[^"]*background:#ffffff/)
+        // No candidates means no card at all.
+        expect(renderCandidatesDisplayHtml([], 'en')).toBe('')
+    })
 })

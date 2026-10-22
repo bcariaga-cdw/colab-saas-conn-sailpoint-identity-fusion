@@ -21,13 +21,24 @@ const MUTED_COLOR = '#4a5566'
 const BORDER_COLOR = '#d7dfea'
 const HEADER_BG = '#eef3fb'
 const LABEL_BG = '#f8fafc'
+const CARD_BG = '#ffffff'
+
+/**
+ * Self-contained light surface for a DESCRIPTION fragment. ISC renders the
+ * review form inside the tenant theme, which is dark in dark mode; the inline
+ * email colour tokens below assume a light background, so every fragment is
+ * wrapped in its own opaque card to stay readable in either theme.
+ */
+const CARD_STYLE =
+    `background:${CARD_BG};color:${TEXT_COLOR};border:1px solid ${BORDER_COLOR};` +
+    `border-radius:12px;padding:16px 18px;margin:0 0 20px 0;box-sizing:border-box;`
 
 const TABLE_STYLE = `width:100%;border-collapse:collapse;table-layout:auto;margin:12px 0 28px 0;border:1px solid ${BORDER_COLOR};`
 const TH_STYLE =
     `text-align:left;padding:10px 14px;border:1px solid ${BORDER_COLOR};background:${HEADER_BG};` +
     `color:${MUTED_COLOR};font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;` +
     `white-space:nowrap;word-break:keep-all;overflow-wrap:normal;`
-const TD_STYLE = `padding:10px 14px;border:1px solid ${BORDER_COLOR};color:${TEXT_COLOR};font-size:14px;line-height:1.45;`
+const TD_STYLE = `padding:10px 14px;border:1px solid ${BORDER_COLOR};background:${CARD_BG};color:${TEXT_COLOR};font-size:14px;line-height:1.45;`
 const TD_NUMERIC_STYLE = `${TD_STYLE}text-align:right;white-space:nowrap;`
 const TD_ATTR_LABEL_STYLE = `${TD_STYLE}width:220px;background:${LABEL_BG};color:${MUTED_COLOR};font-weight:600;`
 
@@ -83,6 +94,14 @@ export function renderIscUiLink(label: string, url: string | undefined): string 
  */
 export function formInputInterpolation(key: string): string {
     return `{{$.form.input.${key}}}`
+}
+
+/**
+ * Wraps a DESCRIPTION fragment in an opaque light card so dark text stays
+ * readable when ISC renders the form inside a dark theme.
+ */
+function renderCard(inner: string): string {
+    return `<div style="${CARD_STYLE}">${inner}</div>`
 }
 
 function isAverageScoreRow(attribute?: string, algorithm?: string): boolean {
@@ -213,12 +232,12 @@ export function renderAccountDisplayHtml(args: AccountDisplayHtmlArgs): string {
 
     const attrTable = renderAttributeTable(args.attributes, args.fusionFormAttributes, locale)
 
-    return (
+    return renderCard(
         `<p style="${HEADER_P_STYLE}"><span style="${HEADER_SPAN_STYLE}"><strong>${header}</strong></span></p>` +
-        `<p style="${BODY_P_STYLE}">${sourceTypeNote}</p>` +
-        `<p style="${ACCOUNT_LINK_P_STYLE}">${accountLink}</p>` +
-        `<p style="${BODY_P_STYLE}">${sourceLabel} <span style="color:${LINK_COLOR};">${sourceValue}</span></p>` +
-        attrTable
+            `<p style="${BODY_P_STYLE}">${sourceTypeNote}</p>` +
+            `<p style="${ACCOUNT_LINK_P_STYLE}">${accountLink}</p>` +
+            `<p style="${BODY_P_STYLE}">${sourceLabel} <span style="color:${LINK_COLOR};">${sourceValue}</span></p>` +
+            attrTable
     )
 }
 
@@ -227,17 +246,18 @@ function renderCandidateScoreTable(candidate: Candidate, locale: string): string
         .filter((score) => score.attribute && score.score !== undefined)
         .map((score) => {
             const bg = scoreRowBackground(score)
+            const cellBg = `background:${bg};`
             const attr = escapeHtml(scoreAttributeLabel(String(score.attribute), locale))
             const algo = escapeHtml(algorithmLabel(String(score.algorithm ?? 'unknown'), locale))
             const weight = isAverageScoreRow(score.attribute, score.algorithm) ? 'font-weight:900;' : ''
             return (
-                `<tr style="background:${bg};">` +
-                `<td style="${TD_STYLE}${weight}">${attr}</td>` +
-                `<td style="${TD_STYLE}${weight}">${attributeValueCell(candidate.attributes, score)}</td>` +
-                `<td style="${TD_STYLE}${weight}">${algo}</td>` +
-                `<td style="${TD_NUMERIC_STYLE}${weight}">${thresholdCell(score)}</td>` +
-                `<td style="${TD_NUMERIC_STYLE}">${resultCell(score)}</td>` +
-                `<td style="${TD_NUMERIC_STYLE}font-weight:900;">${scoreCell(score)}</td>` +
+                `<tr>` +
+                `<td style="${TD_STYLE}${cellBg}${weight}">${attr}</td>` +
+                `<td style="${TD_STYLE}${cellBg}${weight}">${attributeValueCell(candidate.attributes, score)}</td>` +
+                `<td style="${TD_STYLE}${cellBg}${weight}">${algo}</td>` +
+                `<td style="${TD_NUMERIC_STYLE}${cellBg}${weight}">${thresholdCell(score)}</td>` +
+                `<td style="${TD_NUMERIC_STYLE}${cellBg}">${resultCell(score)}</td>` +
+                `<td style="${TD_NUMERIC_STYLE}${cellBg}font-weight:900;">${scoreCell(score)}</td>` +
                 `</tr>`
             )
         })
@@ -261,13 +281,14 @@ function renderCandidateScoreTable(candidate: Candidate, locale: string): string
  * One HTML block listing every form candidate with score tables, attribute values and identity links.
  */
 export function renderCandidatesDisplayHtml(candidates: Candidate[], locale = 'en', urlContext?: UrlContext): string {
-    return candidates
+    const inner = candidates
         .filter((candidate) => candidate?.id && candidate.name)
         .map((candidate) => {
             const nameLink = renderIscUiLink(candidate.name, urlContext?.identity(candidate.id))
             return `<p style="${CANDIDATE_NAME_P_STYLE}">${nameLink}</p>` + renderCandidateScoreTable(candidate, locale)
         })
         .join('')
+    return inner ? renderCard(inner) : ''
 }
 
 /**
@@ -281,9 +302,9 @@ export function renderIdentityDetailsHtml(
 ): string {
     const nameLink = renderIscUiLink(candidate.name, urlContext?.identity(candidate.id))
     const heading = translateWithParams('form_candidate_details', locale, { name: nameLink })
-    return (
+    return renderCard(
         `<p style="${CANDIDATE_NAME_P_STYLE}">${heading}</p>` +
-        renderAttributeTable(candidate.attributes, fusionFormAttributes, locale)
+            renderAttributeTable(candidate.attributes, fusionFormAttributes, locale)
     )
 }
 
