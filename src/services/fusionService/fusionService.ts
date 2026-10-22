@@ -1113,11 +1113,7 @@ export class FusionService {
      * inside `refreshUniqueAttributes` unless the account is being reset.
      */
     private accountNeedsUniqueRefresh(account: FusionAccount): boolean {
-        return (
-            account.needsRefresh ||
-            account.needsReset ||
-            this.definitionService.hasMissingUniqueAttribute(account)
-        )
+        return account.needsRefresh || account.needsReset || this.definitionService.hasMissingUniqueAttribute(account)
     }
 
     private async processOutputBatch(
@@ -1711,10 +1707,6 @@ export class FusionService {
 
         if (tracker.fusionBlends.length > 0) {
             report.fusionBlends = [...tracker.fusionBlends]
-        }
-
-        if (this.run.deletedFusionReviewForms.length > 0) {
-            report.fusionReviewDeletions = this.run.deletedFusionReviewForms.map((entry) => ({ ...entry }))
         }
 
         if (options?.clearTracker ?? true) {

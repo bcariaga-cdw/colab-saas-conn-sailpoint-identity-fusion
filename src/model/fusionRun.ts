@@ -14,12 +14,6 @@ import { CandidateRegistry } from '../services/matchingService/candidateRegistry
 import { ManagedAccountAnalysisContext } from '../services/matchingService/types'
 import { resolveFusionAccountNameOrDisplayName } from './fusionAccountUtils'
 
-/** A Fusion review form definition deleted successfully during this run. */
-export type DeletedFusionReviewForm = {
-    formDefinitionId: string
-    formName?: string
-}
-
 export type ManagedAccountInfo = {
     id: string
     name: string
@@ -71,10 +65,6 @@ export interface RunStateSnapshot {
         formsToDelete: string[]
         queuedFormDeleteIds: string[]
     }
-    /** Fusion review form definitions deleted successfully during this run. */
-    deletedFusionReviewForms?: DeletedFusionReviewForm[]
-    /** Form definition id to name, for deletes that happen after a snapshot restore. */
-    fusionReviewFormNamesById?: Record<string, string>
     managedAccountProcessing: {
         state: 'idle' | 'initialized'
         startedAt: number
@@ -154,13 +144,6 @@ export class FusionRun {
     formInstancesFound: number = 0
     answeredFormInstancesProcessed: number = 0
     formsToDelete: Set<string> = new Set()
-    /**
-     * Fusion review form definitions whose delete succeeded on this run.
-     * One entry per form definition id. Used by the aggregation report's Fusion Review Deletions section.
-     */
-    deletedFusionReviewForms: DeletedFusionReviewForm[] = []
-    /** Form definition names seen this run, so a later id-only delete can still name the row. */
-    private fusionReviewFormNamesById = new Map<string, string>()
     formDeleteQueue: string[] = []
     queuedFormDeleteIds: Set<string> = new Set()
     activeFormDeleteWorkers: number = 0
@@ -821,33 +804,6 @@ export class FusionRun {
         this.answeredFormInstancesProcessed = 0
     }
 
-    /**
-     * Remembers a Fusion review form definition name so a later delete that only has the id
-     * can still list that name on the aggregation report.
-     */
-    rememberFusionReviewFormName(formDefinitionId: string, formName: string): void {
-        const id = formDefinitionId.trim()
-        const name = formName.trim()
-        if (!id || !name || this.fusionReviewFormNamesById.has(id)) return
-        this.fusionReviewFormNamesById.set(id, name)
-    }
-
-    /**
-     * Records one successful Fusion review form definition delete. A repeated id stays a single row.
-     * A later call may fill in a name that the first call did not have.
-     */
-    recordDeletedFusionReviewForm(formDefinitionId: string, formName?: string): void {
-        const id = formDefinitionId.trim()
-        if (!id) return
-        const name = formName?.trim() || this.fusionReviewFormNamesById.get(id)
-        const existing = this.deletedFusionReviewForms.find((entry) => entry.formDefinitionId === id)
-        if (existing) {
-            if (!existing.formName && name) existing.formName = name
-            return
-        }
-        this.deletedFusionReviewForms.push(name ? { formDefinitionId: id, formName: name } : { formDefinitionId: id })
-    }
-
     queueFormForDeletion(formDefId: string): void {
         if (this.queuedFormDeleteIds.has(formDefId)) return
         this.queuedFormDeleteIds.add(formDefId)
@@ -942,8 +898,6 @@ export class FusionRun {
                 formsToDelete: Array.from(this.formsToDelete),
                 queuedFormDeleteIds: Array.from(this.queuedFormDeleteIds),
             },
-            deletedFusionReviewForms: this.deletedFusionReviewForms.map((entry) => ({ ...entry })),
-            fusionReviewFormNamesById: Object.fromEntries(this.fusionReviewFormNamesById),
             managedAccountProcessing: {
                 state: this.managedAccountProcessingStateValue,
                 startedAt: this.managedAccountProcessingStartedAt,
@@ -1014,13 +968,6 @@ export class FusionRun {
         this.formInstancesFound = snapshot.formCounters?.formInstancesFound ?? 0
         this.answeredFormInstancesProcessed = snapshot.formCounters?.answeredFormInstancesProcessed ?? 0
         this.formsToDelete = new Set(snapshot.formDeleteQueue?.formsToDelete ?? [])
-        this.deletedFusionReviewForms = (snapshot.deletedFusionReviewForms ?? []).map((entry) => ({ ...entry }))
-        this.fusionReviewFormNamesById = new Map(Object.entries(snapshot.fusionReviewFormNamesById ?? {}))
-        for (const entry of this.deletedFusionReviewForms) {
-            if (entry.formName && !this.fusionReviewFormNamesById.has(entry.formDefinitionId)) {
-                this.fusionReviewFormNamesById.set(entry.formDefinitionId, entry.formName)
-            }
-        }
         this.queuedFormDeleteIds = new Set(snapshot.formDeleteQueue?.queuedFormDeleteIds ?? [])
         this.formDeleteQueue = snapshot.formDeleteQueue?.formsToDelete ?? []
         this.pendingFormDeleteTasks.clear()

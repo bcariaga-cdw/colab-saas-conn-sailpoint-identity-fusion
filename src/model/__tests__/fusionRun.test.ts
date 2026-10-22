@@ -542,21 +542,6 @@ describe('FusionRun', () => {
         expect(snap.autoMergedIds).toEqual(expect.arrayContaining(['id-a', 'id-b']))
     })
 
-    it('The same definition is retained once', () => {
-        const run = new FusionRun()
-        run.rememberFusionReviewFormName('form-1', 'Fusion Review - Ada [HR] (hr::ada)')
-        run.recordDeletedFusionReviewForm('form-1')
-        run.recordDeletedFusionReviewForm('form-1', 'Fusion Review - Ada [HR] (hr::ada)')
-
-        expect(run.deletedFusionReviewForms).toEqual([
-            { formDefinitionId: 'form-1', formName: 'Fusion Review - Ada [HR] (hr::ada)' },
-        ])
-
-        const restored = new FusionRun()
-        restored.restore(run.snapshot())
-        expect(restored.deletedFusionReviewForms).toEqual(run.deletedFusionReviewForms)
-    })
-
     it('snapshot captures form processing state', () => {
         const run = new FusionRun()
         ;(run as any).fusionIdentityDecisionsValue = [{ account: { id: 'a1', name: 'test', sourceName: 's1' } } as any]

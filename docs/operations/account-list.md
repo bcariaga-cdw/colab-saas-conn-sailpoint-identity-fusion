@@ -174,9 +174,6 @@ When report-on-aggregation is enabled, the generated aggregation report can incl
     - Failed matching/form creation entries with error details
 - **Optional non-match entries**
     - Included when non-match reporting is requested
-- **Fusion Review Deletions** (last section)
-    - Form definition names of Fusion review forms deleted on that aggregation
-    - Omitted when that run deleted none
 
 ### Report size safety
 

@@ -2,8 +2,6 @@ import Handlebars from 'handlebars'
 import type { TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars'
 import { ConnectorError, ConnectorErrorType } from '@sailpoint/connector-sdk'
 import { SourceType } from '../../model/config'
-import type { DeletedFusionReviewForm } from '../../model/fusionRun'
-
 
 // ============================================================================
 // Template Compilation
@@ -321,22 +319,6 @@ const DEFAULT_FUSION_REPORT_TEMPLATE = `<!DOCTYPE html>
           <p style="margin: 18px 0 0 0; color: #6b7280;">{{i18n "no_accounts_included"}}</p>
                   </td>
                 </tr>
-        {{/if}}
-        {{#if fusionReviewDeletions}}
-          {{#if (gt fusionReviewDeletions.length 0)}}
-                <tr>
-                  <td style="padding:14px 24px 14px 14px;">
-          <div style="margin-top: 18px;">
-            <div style="font-size: 12px; color: #0b5cab; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">{{i18n "fusion_review_deletions"}}</div>
-            {{#each fusionReviewDeletions}}
-            <div style="margin-bottom: 10px; border: 1px solid #e6ebf5; border-radius: 10px; padding: 12px; background: #fbfcff;">
-              <div style="font-size:14px; font-weight:700; color:#0f172a; line-height:1.3;">{{#if formName}}{{formName}}{{else}}{{formDefinitionId}}{{/if}}</div>
-            </div>
-            {{/each}}
-          </div>
-                  </td>
-                </tr>
-          {{/if}}
         {{/if}}
               </table>
             </td>
@@ -683,8 +665,6 @@ export type FusionReportEmailData = {
         blendedAccountUrl?: string
         blendedSource: string
     }>
-    /** Fusion review form definitions deleted successfully during this aggregation. */
-    fusionReviewDeletions?: DeletedFusionReviewForm[]
     stats?: {
         totalFusionAccounts?: number
         fusionAccountsFound?: number

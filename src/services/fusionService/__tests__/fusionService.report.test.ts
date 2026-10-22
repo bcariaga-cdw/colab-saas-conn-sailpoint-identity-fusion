@@ -177,7 +177,9 @@ describe('FusionService — report', () => {
 
         it('does not call configureScoring when report capture is disabled', async () => {
             await initializeWithReportCaptureFlag(false)
-            expect((ctx.mockMatchingService as { configureScoring?: ReturnType<typeof vi.fn> }).configureScoring).not.toHaveBeenCalled()
+            expect(
+                (ctx.mockMatchingService as { configureScoring?: ReturnType<typeof vi.fn> }).configureScoring
+            ).not.toHaveBeenCalled()
             expect(ctx.mockMatchingService.buildTrigramIndex).toHaveBeenCalled()
         })
 
@@ -288,15 +290,4 @@ describe('FusionService — report', () => {
             expect(tracker.deferredMatchReportData[0].matches[0].scores?.[0].score).toBe(88)
         })
     })
-
-    it('copies deleted Fusion review forms onto the aggregation report payload', () => {
-        ctx.run.recordDeletedFusionReviewForm('form-1', 'Fusion Review - Ada [HR] (hr::ada)')
-        const report = ctx.fusionService.generateReport(new AggregationTracker())
-        expect(report.fusionReviewDeletions).toEqual([
-            { formDefinitionId: 'form-1', formName: 'Fusion Review - Ada [HR] (hr::ada)' },
-        ])
-    })
 })
-
-
-

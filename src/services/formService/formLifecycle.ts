@@ -53,7 +53,9 @@ export class FormLifecycle {
 
         const forms = await this.deps.client.call<FormDefinitionResponseV2025>(
             (api: any, params: any) =>
-                api.customForms.searchFormDefinitionsByTenant(params).then((r: any) => ({ data: r.data?.results ?? [] })),
+                api.customForms
+                    .searchFormDefinitionsByTenant(params)
+                    .then((r: any) => ({ data: r.data?.results ?? [] })),
             {
                 paginate: { mode: 'sequential', baseParams: requestParameters as any },
                 context: 'FormService>findFormDefinitionsByName searchFormDefinitionsByTenant',
@@ -78,7 +80,9 @@ export class FormLifecycle {
 
         const forms = await this.deps.client.call<FormDefinitionResponseV2025>(
             (api: any, params: any) =>
-                api.customForms.searchFormDefinitionsByTenant(params).then((r: any) => ({ data: r.data?.results ?? [] })),
+                api.customForms
+                    .searchFormDefinitionsByTenant(params)
+                    .then((r: any) => ({ data: r.data?.results ?? [] })),
             {
                 paginate: { mode: 'sequential', baseParams: requestParameters as any },
                 context: 'FormService>getFormDefinitionByName searchFormDefinitionsByTenant',
@@ -237,7 +241,7 @@ export class FormLifecycle {
     /**
      * Delete a form definition
      */
-    async deleteFormDefinition(formDefinitionId: string, formName?: string): Promise<void> {
+    async deleteFormDefinition(formDefinitionId: string): Promise<void> {
         assert(formDefinitionId, 'Form definition ID is required')
         assert(this.deps.client, 'Client service is required')
 
@@ -246,7 +250,6 @@ export class FormLifecycle {
             (api: any) => api.customForms.deleteFormDefinition({ formDefinitionID: formDefinitionId }),
             { context: `FormService>deleteForm id=${formDefinitionId}` }
         )
-        this.deps.run.recordDeletedFusionReviewForm(formDefinitionId, formName)
         this.deps.log.debug(`Form definition deleted successfully: ${formDefinitionId}`)
     }
 
@@ -329,8 +332,7 @@ export class FormLifecycle {
         const timestamp = this.readFormDefinitionTimestamp(form)
         if (!timestamp) return false
 
-        const cutoffMs =
-            this.deps.run.currentTimeMs() - this.deps.fusionFormExpirationDays * 24 * 60 * 60 * 1000
+        const cutoffMs = this.deps.run.currentTimeMs() - this.deps.fusionFormExpirationDays * 24 * 60 * 60 * 1000
         return timestamp.getTime() < cutoffMs
     }
 
@@ -348,15 +350,16 @@ export class FormLifecycle {
 
         const parsed = new Date(String(rawTimestamp))
         if (Number.isNaN(parsed.getTime())) {
-            this.deps.log.warn(`Form definition ${form.id || 'unknown'} has invalid timestamp "${String(rawTimestamp)}"`)
+            this.deps.log.warn(
+                `Form definition ${form.id || 'unknown'} has invalid timestamp "${String(rawTimestamp)}"`
+            )
             return undefined
         }
 
         return parsed
     }
 
-    addFormToDelete(formDefinitionId: string, formName?: string): void {
-        if (formName) this.deps.run.rememberFusionReviewFormName(formDefinitionId, formName)
+    addFormToDelete(formDefinitionId: string): void {
         this.deps.run.formsToDelete.add(formDefinitionId)
     }
 
@@ -394,5 +397,3 @@ export class FormLifecycle {
         }
     }
 }
-
-

@@ -199,10 +199,9 @@ export class FormService {
     }
 
     /** Deletes a definition we are about to recreate, and drops its pending deletion mark. */
-    private async deleteReplacedFormDefinition(formDefinitionId: string, formName?: string): Promise<void> {
+    private async deleteReplacedFormDefinition(formDefinitionId: string): Promise<void> {
         try {
-            if (formName) this.run.rememberFusionReviewFormName(formDefinitionId, formName)
-            await this.deleteFormDefinition(formDefinitionId, formName)
+            await this.deleteFormDefinition(formDefinitionId)
             this.run.formsToDelete.delete(formDefinitionId)
         } catch (error) {
             const detail = error instanceof Error ? error.message : String(error)
@@ -247,7 +246,7 @@ export class FormService {
             this.log.info(
                 `Form definition ${staleFormId} is older than ${this.fusionFormExpirationDays} day(s), queuing deletion`
             )
-            this.addFormToDelete(staleFormId, staleForm.name)
+            this.addFormToDelete(staleFormId)
         }
     }
 
@@ -260,9 +259,6 @@ export class FormService {
         this.resetFormDataState()
 
         const forms = await this.findFormDefinitionsByName(this.fusionFormNamePattern)
-        for (const form of forms) {
-            if (form.id && form.name) this.run.rememberFusionReviewFormName(form.id, form.name)
-        }
         let activeForms = forms
         if (options?.staleFormCleanup) {
             const partitioned = this.partitionStaleForms(forms)
@@ -352,7 +348,7 @@ export class FormService {
                 return
             }
             const instances = await this.fetchFormInstancesByDefinitionId(formId)
-            await this.deleteFormDefinition(formId, form.name)
+            await this.deleteFormDefinition(formId)
             await this.closeLeftoverFormInstances(instances)
         })
     }
@@ -657,7 +653,7 @@ export class FormService {
                             ? `Replacing form definition ${existing.id} already marked for deletion this run for "${formName}" (locale ${formLocale})`
                             : `Replacing existing form definition ${existing.id} for localized form "${formName}" (locale ${formLocale})`
                     )
-                    await this.deleteReplacedFormDefinition(existing.id, formName)
+                    await this.deleteReplacedFormDefinition(existing.id)
                 }
             }
 
@@ -685,7 +681,7 @@ export class FormService {
             this.log.info(
                 `Replacing form definition ${formDefinition.id} already marked for deletion this run for "${formName}"`
             )
-            await this.deleteReplacedFormDefinition(formDefinition.id, formDefinition.name ?? formName)
+            await this.deleteReplacedFormDefinition(formDefinition.id)
             formDefinition = undefined
         }
         if (!formDefinition) {
@@ -1498,8 +1494,8 @@ export class FormService {
         return this.lifecycle.isFormDefinitionStale(form)
     }
 
-    private addFormToDelete(formDefinitionId: string, formName?: string): void {
-        this.lifecycle.addFormToDelete(formDefinitionId, formName)
+    private addFormToDelete(formDefinitionId: string): void {
+        this.lifecycle.addFormToDelete(formDefinitionId)
     }
 
     private kickoffFormDeleteWorkers(): void {
@@ -1509,7 +1505,7 @@ export class FormService {
     /**
      * Delete a form definition
      */
-    public async deleteFormDefinition(formDefinitionId: string, formName?: string): Promise<void> {
-        return this.lifecycle.deleteFormDefinition(formDefinitionId, formName)
+    public async deleteFormDefinition(formDefinitionId: string): Promise<void> {
+        return this.lifecycle.deleteFormDefinition(formDefinitionId)
     }
 }

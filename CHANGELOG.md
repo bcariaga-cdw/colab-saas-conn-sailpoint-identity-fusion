@@ -13,6 +13,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates u
 - **Ownership decisions no longer reissue a Fusion review on the same run** — When a reviewer selects an owner for a machine account on an Orphan source in Ownership mode, the connector writes `ownerIdentity` but deliberately does not correlate the account or attach it to a Fusion account. The decided account was left on the Match work queue, so the same run's uncorrelated sweep re-scored the stale, owner-less snapshot, opened a duplicate review form, and listed the account again under **Fusion Reviews** beside its own processed decision. The account is now claimed off the work queue once the owner is written, matching every other decision path. The ownership no-match path already claimed its account and is unchanged.
 - **Review decisions from older forms report the correct source type** — Fusion review form definitions created before the form input carried `sourceType` produced decisions classified as authoritative. An Orphan-source decision therefore showed an **Authoritative** badge in the report's Fusion Review Decisions section, was counted under the wrong source type in the statistics, and a confirmed no-match on an Orphan source was not dropped as an orphan. The decision now resolves its source type from the managed source when the form input omits it.
 
+### 🗑️ Removed
+
+- **Fusion Review Deletions section on the aggregation report** — The aggregation report no longer ends with a **Fusion Review Deletions** section, and the connector no longer records the Fusion review form definitions deleted on a run. When and how forms are deleted is unchanged; deletion history remains available in connector logs and ISC Custom Forms.
+
 ---
 
 ## 2026-10-21 · v2.2.0
