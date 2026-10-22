@@ -819,17 +819,6 @@ The ubiquitous-language glossary **Processing Control** entry SHALL remain the S
 - **THEN** the **Processing Control** entry SHALL list history retention, empty-account deletion, missing-identifier behavior, and the origin-absent main account handoff
 - **AND** the entry SHALL name `promoteMainAccountWhenOriginMissing`
 
-### Requirement: Glossary defines Fusion Review Deletions
-
-The ubiquitous-language glossary SHALL define **Fusion Review Deletions** as the last section of an aggregation report. It names the Fusion review form definitions deleted during that aggregation. It SHALL NOT be a separate report, and it SHALL NOT list cancelled form instances. Documentation and specs SHALL NOT call it a deleted forms report, a form cleanup section, or a Reset forms log.
-
-#### Scenario: Glossary lists Fusion Review Deletions
-
-- **WHEN** the glossary is consulted for aggregation report sections
-- **THEN** it SHALL contain **Fusion Review Deletions**
-- **AND** SHALL define it as the last section of an aggregation report listing Fusion review form definitions deleted during that aggregation
-- **AND** SHALL NOT define it as a report of its own or as a list of cancelled form instances
-
 ## Canonical Terms
 
 ### Account taxonomy
@@ -904,7 +893,6 @@ Architecture vocabulary for how a `FusionAccount` is organized. These terms MUST
 | **dry-run report** | The HTML/email Match preview produced after account-list in dry-run mode. Writes are inhibited. Title: Identity Fusion Dry Run Report. |
 | **Fusion report** | The HTML/email Match preview produced by the `report` action. Same Match slices as a dry-run report; writes inhibited; no account-list stream. Title: Identity Fusion Report. Not an aggregation report. |
 | **aggregation report** | The HTML/email produced after a persistent account-list (aggregation) when owner reporting is enabled. Title: Identity Fusion Aggregation Report. |
-| **Fusion Review Deletions** | The last section of an aggregation report. It names the Fusion review form definitions deleted during that aggregation. Not a separate report, and not a list of cancelled form instances. Omitted when that run deleted none. |
 
 ### Framework steps
 
