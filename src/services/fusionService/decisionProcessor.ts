@@ -190,6 +190,7 @@ export class DecisionProcessor {
         const selectedIdentityId = trimStr(fusionDecision.identityId)
         if (isAuthorizedDecision && isOwnershipModeSource(sourceInfo) && selectedIdentityId) {
             await this.deps.sources.setMachineAccountOwnerIdentity(fusionDecision.account, selectedIdentityId)
+            this.claimDecidedOwnershipAccount(fusionDecision)
             return undefined
         }
 
@@ -259,6 +260,23 @@ export class DecisionProcessor {
             logFusionDecisionApplied(this.log, fusionDecision, 'registered')
         }
         return fusionAccount
+    }
+
+    /**
+     * Ownership decisions persist `ownerIdentity` but deliberately do not correlate the
+     * account or attach it to a Fusion account, so they skip {@link AccountAssembly}
+     * (which normally claims the managed account off the Match work queue).
+     *
+     * Claim the account here once the owner is written. Otherwise the same run's
+     * uncorrelated sweep re-scores the stale (owner-less) snapshot and opens a duplicate
+     * review form, and the account reappears in the report's Fusion Reviews section even
+     * though its review was already decided.
+     */
+    private claimDecidedOwnershipAccount(decision: FusionDecision): void {
+        const key = normalizeCompositeManagedAccountKey(trimStr(decision.account?.id) ?? '')
+        if (!key) return
+        const queued = this.run.get(key)
+        this.run.claimAccount(key, queued?.identityId)
     }
 
     /**

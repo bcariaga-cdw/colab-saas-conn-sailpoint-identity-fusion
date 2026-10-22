@@ -651,6 +651,27 @@ describe('FusionService — decisions', () => {
             expect(ctx.fusionService.getFusionIdentity('identity-1')).toBe(existingFusionAccount)
         })
 
+        it('claims the managed account off the work queue after writing the owner identity', async () => {
+            seedOwnershipSource()
+            vi.spyOn(ctx.mockSources, 'setMachineAccountOwnerIdentity').mockResolvedValue(undefined)
+            const machineAccount = {
+                id: 'fetched-id',
+                nativeIdentity: 'machine-1',
+                sourceId: 'src-m',
+                sourceName: 'Machines',
+            } as Account
+            const managedKey = 'src-m::machine-1'
+            const workQueue = new Map<string, Account>([[managedKey, machineAccount]])
+            vi.spyOn(ctx.mockSources, 'managedAccountsById', 'get').mockReturnValue(workQueue)
+
+            const result = await ctx.fusionService.processFusionIdentityDecision(ownershipDecision())
+
+            expect(result).toBeUndefined()
+            // Claiming prevents the same run's uncorrelated sweep from re-scoring the
+            // stale (owner-less) snapshot and opening a duplicate review form.
+            expect(workQueue.has(managedKey)).toBe(false)
+        })
+
         it('still correlates an Assignment-mode reviewer selection', async () => {
             ctx.fusionService.run.sourcesByName.set('Orphans', {
                 id: 'src-o',
