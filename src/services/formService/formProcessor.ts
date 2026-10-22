@@ -366,12 +366,20 @@ export const createFusionDecision = async (
     }
 }
 
-const extractSourceType = (formInput: any): SourceType => {
+/**
+ * Reads the managed source type captured in the form input.
+ *
+ * Returns `undefined` when the form input does not carry a valid `sourceType` —
+ * notably older form definitions created before that input key existed. Callers
+ * resolve the type from the managed source in that case so the decision is
+ * classified correctly instead of defaulting to authoritative.
+ */
+const extractSourceType = (formInput: any): SourceType | undefined => {
     if (typeof formInput?.sourceType === 'string') {
         const value = formInput.sourceType as string
         if (value === SourceType.Authoritative || value === SourceType.Record || value === SourceType.Orphan) {
             return value as SourceType
         }
     }
-    return SourceType.Authoritative
+    return undefined
 }

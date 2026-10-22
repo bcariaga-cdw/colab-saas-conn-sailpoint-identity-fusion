@@ -70,6 +70,26 @@ describe('formProcessor createFusionDecision', () => {
         expect(decision).toBeDefined()
         expect(decision?.correlatedIdentityId).toBe('correlated-uuid')
     })
+
+    it('leaves sourceType unset when the form input omits it (older definitions)', async () => {
+        const decision = await createFusionDecision({
+            id: 'fi-no-source-type',
+            state: 'COMPLETED',
+            recipients: [{ id: 'reviewer-1', type: 'IDENTITY' }],
+            formInput: {
+                account: 'src-1::account-1',
+                name: 'Account One',
+                source: 'HR',
+            },
+            formData: {
+                newIdentity: false,
+                identities: ['identity-123'],
+            },
+        } as any)
+
+        expect(decision).toBeDefined()
+        expect(decision?.sourceType).toBeUndefined()
+    })
 })
 
 describe('extractAccountInfoFromFormInput', () => {

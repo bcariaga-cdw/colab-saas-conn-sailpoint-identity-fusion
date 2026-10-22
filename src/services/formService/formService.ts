@@ -1312,6 +1312,13 @@ export class FormService {
                 continue
             }
 
+            // Older form definitions may not capture `sourceType` in their form input.
+            // Resolve it from the managed source so reporting, logging, and no-match
+            // handling classify the decision against the right source type.
+            if (!decision.sourceType) {
+                decision.sourceType = this.sources.getSourceByNameSafe(decision.account.sourceName)?.sourceType
+            }
+
             if (decision.finished) {
                 this.registerFinishedDecision(decision, decision.newIdentity)
                 if (!decision.newIdentity) {

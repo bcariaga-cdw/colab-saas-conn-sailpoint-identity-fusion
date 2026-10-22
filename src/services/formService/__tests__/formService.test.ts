@@ -1949,6 +1949,51 @@ describe('FormService finished decision reporting metadata', () => {
         expect((service as any).finishedFusionDecisionsValue[0].account.isMachine).toBe(true)
         expect((service as any).finishedFusionDecisionsValue[0].account.iscAccountId).toBe('isc-machine-1')
     })
+
+    it('resolves sourceType from the managed source when the form input omits it', async () => {
+        const run = {
+            fusionIdentityDecisions: [],
+            addFinishedFusionDecision: vi.fn(),
+            addDecision: vi.fn(),
+            managedAccountsById: new Map(),
+            managedAccountInventory: new Map(),
+            hasManagedAccount: vi.fn(() => false),
+            getManagedAccountInfo: vi.fn(() => undefined),
+            getFusionAccountByManagedKey: vi.fn(() => undefined),
+            getFusionIdentity: vi.fn(() => undefined),
+            allFusionAccounts: [],
+            allFusionIdentities: [],
+        }
+        const sources = {
+            resolveIscAccountIdForManagedKey: vi.fn(() => undefined),
+            getSourceByNameSafe: vi.fn(() => ({ sourceType: SourceType.Orphan })),
+        }
+        const service = new FormService(
+            { fusionFormNamePattern: 'Fusion Review', fusionFormExpirationDays: 1 } as any,
+            { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn(), getLogLevel: vi.fn(() => 'info') } as any,
+            {} as any,
+            sources as any,
+            undefined,
+            undefined,
+            run as any
+        )
+
+        await (service as any).createDecisionsFromInstances(
+            [
+                {
+                    id: 'fi-orphan',
+                    state: 'COMPLETED',
+                    formDefinitionId: 'fd-1',
+                    recipients: [{ id: 'reviewer-1', type: 'IDENTITY' }],
+                    formInput: { account: 'src-m::machine-1', name: 'Machine', source: 'Machines' },
+                    formData: { newIdentity: true },
+                },
+            ],
+            undefined
+        )
+
+        expect((service as any).finishedFusionDecisionsValue[0].sourceType).toBe(SourceType.Orphan)
+    })
 })
 describe('FormService finished decision reviewer metadata', () => {
     it('stores submitter display name when registering finished decisions', () => {
