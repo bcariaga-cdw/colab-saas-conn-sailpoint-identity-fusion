@@ -25,6 +25,40 @@ describe('DefinitionService', () => {
     })
 })
 
+describe('DefinitionService.saveState', () => {
+    const mockLog = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), getLogLevel: vi.fn(() => 'info') } as any
+    const mockLocks = { withLock: vi.fn((_key: string, fn: () => Promise<any>) => fn()) } as any
+    const mockSchemas = { fusionIdentityAttribute: 'id', fusionDisplayAttribute: 'name' } as any
+    const config = {
+        normalAttributeDefinitions: [],
+        uniqueAttributeDefinitions: [],
+        attributeMaps: [],
+    } as any
+
+    it('persists the counter state to the fusion source connector attributes', async () => {
+        const patchSourceConfig = vi.fn().mockResolvedValue(undefined)
+        const mockSources = { fusionSourceId: 'fusion-src', patchSourceConfig } as any
+        const service = new DefinitionService(config, mockSchemas, mockLog, mockLocks, mockSources)
+        service.setStateWrapper({ NetID: 8 })
+
+        await service.saveState()
+
+        expect(patchSourceConfig).toHaveBeenCalledWith(
+            'fusion-src',
+            '/connectorAttributes/fusionState',
+            { NetID: 8 },
+            'DefinitionService>saveState'
+        )
+    })
+
+    it('throws when no SourceService is configured', async () => {
+        const service = new DefinitionService(config, mockSchemas, mockLog, mockLocks)
+        service.setStateWrapper({ NetID: 8 })
+
+        await expect(service.saveState()).rejects.toThrow(/SourceService is not configured/)
+    })
+})
+
 describe('DefinitionService.applyDisplayAttributeOverride', () => {
     const mockLog = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), getLogLevel: vi.fn(() => 'info') } as any
     const mockLocks = { withLock: vi.fn((_key: string, fn: () => Promise<any>) => fn()) } as any

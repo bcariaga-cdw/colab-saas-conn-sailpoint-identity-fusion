@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates u
 
 ---
 
+## 2026-10-23 · v2.2.0
+
+### 🐛 Fixes
+
+- **Incremental unique-attribute counters persist across aggregations** — After a persistent account aggregation, the connector now writes the generated counter state back to the Fusion source (`/connectorAttributes/fusionState`) instead of only logging it. `DefinitionService.saveState()` previously computed and logged the state but never called `SourceService.patchSourceConfig()`, so every aggregation restarted counters from the stale tenant value and could reissue values that had already been generated (for example `fn9`/`fn10` followed by a repeated `fg9`).
+
+---
+
 ## 2026-10-22 · v2.2.0
 
 ### 🐛 Fixes

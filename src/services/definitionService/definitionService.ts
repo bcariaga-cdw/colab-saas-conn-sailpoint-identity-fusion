@@ -11,7 +11,7 @@ import { FusionAccountKind } from '../../model/fusionAccountTypes'
 import { SchemaService } from '../schemaService'
 import { InMemoryLockService } from '../lockService'
 import { StateWrapper } from './stateWrapper'
-import { SimpleKey, SimpleKeyType } from '@sailpoint/connector-sdk'
+import { ConnectorError, ConnectorErrorType, SimpleKey, SimpleKeyType } from '@sailpoint/connector-sdk'
 import { applyOutputTransforms, evaluateAttributeTemplate } from './templateEvaluator'
 import { createRenderContextForPass, padNumber } from './formatting'
 import crypto from 'crypto'
@@ -27,6 +27,7 @@ import { MappingService } from '../mappingService'
 import { promiseAllBatched, getFusionParallelBatchSize } from '../fusionService/collections'
 import { buildUniqueRegistrationPlan, UniqueRegistrationPlan } from './uniqueRegistrationPlan'
 import { IDENTITIES_SOURCE_NAME } from '../../model/fusionAccount'
+import type { SourceService } from '../sourceService'
 
 export interface RecordUniqueRegistrationProgress {
     onProgress?: (done: number, total: number) => void
@@ -50,7 +51,8 @@ export class DefinitionService {
         private config: FusionConfig,
         private schemas: SchemaService,
         private log: LogService,
-        private locks: InMemoryLockService
+        private locks: InMemoryLockService,
+        private sourceService?: SourceService
     ) {
         this.normalDefinitions = config.normalAttributeDefinitions ?? []
         this.uniqueDefinitions = config.uniqueAttributeDefinitions ?? []
@@ -475,13 +477,20 @@ export class DefinitionService {
         const stateObject = await this.getStateObject()
         this.log.info(`Saving state object: ${JSON.stringify(stateObject)}`)
 
-        // State is persisted via the service registry's source service.
-        // DefinitionService holds the canonical counter state in its StateWrapper;
-        // the service registry (or caller) is responsible for persisting via
-        // SourceService.patchSourceConfig(fusionSourceId, FUSION_STATE_CONFIG_PATH, stateObject).
-        this.log.debug(
-            `State save requested for ${Object.keys(stateObject).length} counter(s). ` +
-            `Persist via SourceService.patchSourceConfig with path: ${FUSION_STATE_CONFIG_PATH}`
+        // Persist counter state to the Fusion source's connector attributes so the next
+        // aggregation continues from the last generated values instead of resetting.
+        const sourceService = this.sourceService
+        if (!sourceService) {
+            throw new ConnectorError(
+                'SourceService is not configured on DefinitionService; cannot persist fusion state.',
+                ConnectorErrorType.Generic
+            )
+        }
+        await sourceService.patchSourceConfig(
+            sourceService.fusionSourceId,
+            FUSION_STATE_CONFIG_PATH,
+            stateObject,
+            'DefinitionService>saveState'
         )
     }
 

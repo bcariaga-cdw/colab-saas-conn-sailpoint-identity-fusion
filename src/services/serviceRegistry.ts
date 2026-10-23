@@ -168,7 +168,7 @@ export class ServiceRegistry {
         this.mapping = context.mappingService ?? new MappingService(this.config, this.log)
         this.definition =
             context.definitionService ??
-            new DefinitionService(this.config, this.schemas, this.log, this.locks)
+            new DefinitionService(this.config, this.schemas, this.log, this.locks, this.sources)
         this.matching =
             context.matchingService ??
             new MatchingService(this.config, this.log, this.run)

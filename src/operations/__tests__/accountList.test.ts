@@ -368,6 +368,15 @@ describe('accountList report epilogue', () => {
         expect(sources.releaseProcessLock).toHaveBeenCalledTimes(1)
     })
 
+    it('persists definition state and batch cumulative counts on a successful persistent aggregation', async () => {
+        const { registry, sources } = createMockRegistry([{ name: 'fusion', correlationMode: 'none' }])
+
+        await accountList(registry, { schema: { attributes: [] } } as any)
+
+        expect(registry.definition.saveState).toHaveBeenCalledTimes(1)
+        expect(sources.saveBatchCumulativeCount).toHaveBeenCalledTimes(1)
+    })
+
     it('writes dry-run report artifacts even when res.send fails mid-stream', async () => {
         const { registry, fusion } = createMockRegistry([{ name: 'fusion', correlationMode: 'none' }])
         const reports = registry.reports as any
