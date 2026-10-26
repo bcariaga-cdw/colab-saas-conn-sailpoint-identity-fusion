@@ -10,7 +10,7 @@ Scaffold the per-repo configuration that the engineering skills assume:
 
 - **Issue tracker**: where issues live (GitHub by default; local markdown is also supported out of the box)
 - **Triage labels**: the strings used for the five canonical triage roles
-- **Domain docs**: where vocabulary and ADRs live, and the consumer rules for reading them (`CONTEXT.md` in legacy repos; ubiquitous-language spec in OpenSpec repos)
+- **Domain docs**: where vocabulary and ADRs live, and the consumer rules for reading them (`GLOSSARY.md` in legacy repos; ubiquitous-language spec in OpenSpec repos)
 
 This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
@@ -22,7 +22,7 @@ Look at the current repo to understand its starting state. Read whatever exists;
 
 - `git remote -v` and `.git/config`: is this a GitHub repo? Which one?
 - `AGENTS.md` and `CLAUDE.md` at the repo root: does either exist? Is there already an `## Agent skills` section in either?
-- `CONTEXT.md` and `CONTEXT-MAP.md` at the repo root
+- `GLOSSARY.md` and `GLOSSARY-MAP.md` (or legacy `CONTEXT.md`) at the repo root
 - `openspec/config.yaml` and `openspec/specs/`: signals OpenSpec mode
 - `docs/adr/` and any `src/*/docs/adr/` directories
 - `docs/agents/`: does this skill's prior output already exist?
@@ -60,8 +60,8 @@ The defaults are the five canonical roles, each label string equal to its name: 
 
 **Section C: Domain docs.** Branch on mode:
 
-- **OpenSpec detected** (OpenSpec mode per [OPENSPEC-MODE.md](../domain-modeling/OPENSPEC-MODE.md) §Detection — recommended when found): scaffold **OpenSpec layout**. Write `docs/agents/domain.md` from [domain-openspec.md](./domain-openspec.md). Do **not** create or reference repo-root `CONTEXT.md` or `CONTEXT-MAP.md`. Summarize as "OpenSpec mode" in the AGENTS block.
-- **Legacy (no OpenSpec):** default to **single-context** (one `CONTEXT.md` + `docs/adr/` at the repo root). This fits almost every repo; write it without asking. Offer **multi-context** (a root `CONTEXT-MAP.md` pointing to per-context `CONTEXT.md` files) only when exploration found monorepo signals. Then confirm which layout they want.
+- **OpenSpec detected** (OpenSpec mode per [OPENSPEC-MODE.md](../domain-modeling/OPENSPEC-MODE.md) §Detection — recommended when found): scaffold **OpenSpec layout**. Write `docs/agents/domain.md` from [domain-openspec.md](./domain-openspec.md). Do **not** create or reference repo-root `GLOSSARY.md`, `CONTEXT.md`, or `CONTEXT-MAP.md`. Summarize as "OpenSpec mode" in the AGENTS block.
+- **Legacy (no OpenSpec):** default to **single-context** (one `GLOSSARY.md` + `docs/adr/` at the repo root). This fits almost every repo; write it without asking. Offer **multi-context** (a root `GLOSSARY-MAP.md` pointing to per-context `GLOSSARY.md` files) only when exploration found monorepo signals. Then confirm which layout they want.
 
 ### 3. Confirm and edit
 

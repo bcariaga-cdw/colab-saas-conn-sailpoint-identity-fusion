@@ -8,10 +8,10 @@ Fresh install: [INSTALL.md](./INSTALL.md). Standalone manual install: [INSTALL.m
 
 ## Version signals
 
-| Signal         | File                       | Meaning                                 |
-| -------------- | -------------------------- | --------------------------------------- |
-| Graph contract | `schema.yaml` → `version:` | Artifact graph / PRECHECK breaking      |
-| Bundle release | [VERSION](./VERSION)       | SemVer of templates, INSTALL, fragments |
+| Signal | File | Meaning |
+|---|---|---|
+| Graph contract | `schema.yaml` → `version:` | Artifact graph / PRECHECK breaking |
+| Bundle release | [VERSION](./VERSION) | SemVer of templates, INSTALL, fragments |
 
 **Hard-stop** when bundled graph `version` > local — read [Migration](#migration) below; require user ack before overwrite.
 
@@ -20,21 +20,21 @@ Fresh install: [INSTALL.md](./INSTALL.md). Standalone manual install: [INSTALL.m
 ## Compatibility (preflight)
 
 | ferspec | OpenSpec CLI | Baseline as of |
-| ------- | ------------ | -------------- |
-| v1      | ≥ 1.4.1      | 2026-08-16     |
+|---|---|---|
+| v1 | ≥ 1.4.1 | 2026-08-16 |
 
 Block update when `openspec --version` is below the minimum above.
 
 ## What the update touches
 
-| Path                                     | Action                                                                                            | Gate                                 |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `openspec/schemas/ferspec/`              | Full replace from bundled copy                                                                    | Diff + ack before overwrite          |
-| `openspec/config.yaml`                   | Refresh rules, `operations.archive`, and `operations.apply`; preserve `context:` and custom rules | Diff + ack                           |
-| `AGENTS.md` / `CLAUDE.md` (project root) | Section diff/replace or append from `templates/adopters/AGENTS.md.fragment.md`                    | Diff + ack; never whole-file replace |
-| Companion skills                         | Full `INSTALL.md` Skills list (idempotent)                                                        | Gate once before commands            |
-| `openspec/specs/**`                      | Never modify existing content                                                                     | —                                    |
-| `openspec/changes/**`                    | Never modify                                                                                      | Warn on graph breaking bump          |
+| Path | Action | Gate |
+|---|---|---|
+| `openspec/schemas/ferspec/` | Full replace from bundled copy | Diff + ack before overwrite |
+| `openspec/config.yaml` | Refresh rules, `operations.archive`, and `operations.apply`; preserve `context:` and custom rules | Diff + ack |
+| `AGENTS.md` / `CLAUDE.md` (project root) | Section diff/replace or append from `templates/adopters/AGENTS.md.fragment.md` | Diff + ack; never whole-file replace |
+| Companion skills | Full `INSTALL.md` Skills list (idempotent) | Gate once before commands |
+| `openspec/specs/**` | Never modify existing content | — |
+| `openspec/changes/**` | Never modify | Warn on graph breaking bump |
 
 Monolithic schema dir — take the whole new bundle or stay on the old one. No per-file opt-in.
 

@@ -19,33 +19,33 @@ Orchestrate **apply**: execute `tasks.md` in order (Changelog group last), run t
 
 ## Session variables
 
-| Variable             | When set               | Meaning                                                                                                       |
-| -------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `CHANGE_ROOT`        | Pre-flight (adapter)   | Adapter `changeRoot` / user path — **planning read only** after bind                                          |
-| `CHANGE_ROOT_REL`    | Pre-flight             | Repo-relative path from `CHANGE_ROOT` — used to compute `ACTIVE_CHANGE_ROOT`                                  |
-| `NAME`               | Pre-flight             | Basename of the change — used in `apply-<name>`                                                               |
-| `TRACKING_HINT`      | Pre-flight (optional)  | Non-authoritative adapter-path seed; may be from the wrong checkout                                           |
-| `TRACKING`           | Setup + pre-bind merge | Authoritative fields (Issue, Change, Branch, PR, Presets). **Branch resolution reads merged `TRACKING` only** |
-| `TRACKING_SETUP`     | End of setup           | Snapshot after setup — restore before store-adoption restart in pre-bind merge                                |
-| `STORE_SOURCE`       | Pre-flight (OpenSpec)  | `explicit` for user/command `--store`, `hint` for `TRACKING_HINT` → store                                     |
-| `PRESET_OVERRIDES`   | Setup                  | Current-run `venue`, `parallelism`, and explicit `STORE` — override Presets keys during every merge           |
-| `ORIGINAL_BRANCH`    | Bind (step 2)          | Base branch — local/worktree commits integrate here                                                           |
-| `FEATURE_BRANCH`     | Bind (step 2)          | **Remote only** — PR head (`openspec/<name>` or `feature/<name>` default)                                     |
-| `APPLY_REF`          | Bind (step 2)          | **Worktree only** — ephemeral `apply-<name>`                                                                  |
-| `WORK_CHECKOUT`      | Bind (step 2)          | Git directory where the orchestrator runs                                                                     |
-| `ACTIVE_CHANGE_ROOT` | Bind (step 2)          | `WORK_CHECKOUT` + `CHANGE_ROOT_REL` — **all artifact I/O after bind**                                         |
+| Variable | When set | Meaning |
+|---|---|---|
+| `CHANGE_ROOT` | Pre-flight (adapter) | Adapter `changeRoot` / user path — **planning read only** after bind |
+| `CHANGE_ROOT_REL` | Pre-flight | Repo-relative path from `CHANGE_ROOT` — used to compute `ACTIVE_CHANGE_ROOT` |
+| `NAME` | Pre-flight | Basename of the change — used in `apply-<name>` |
+| `TRACKING_HINT` | Pre-flight (optional) | Non-authoritative adapter-path seed; may be from the wrong checkout |
+| `TRACKING` | Setup + pre-bind merge | Authoritative fields (Issue, Change, Branch, PR, Presets). **Branch resolution reads merged `TRACKING` only** |
+| `TRACKING_SETUP` | End of setup | Snapshot after setup — restore before store-adoption restart in pre-bind merge |
+| `STORE_SOURCE` | Pre-flight (OpenSpec) | `explicit` for user/command `--store`, `hint` for `TRACKING_HINT` → store |
+| `PRESET_OVERRIDES` | Setup | Current-run `venue`, `parallelism`, and explicit `STORE` — override Presets keys during every merge |
+| `ORIGINAL_BRANCH` | Bind (step 2) | Base branch — local/worktree commits integrate here |
+| `FEATURE_BRANCH` | Bind (step 2) | **Remote only** — PR head (`openspec/<name>` or `feature/<name>` default) |
+| `APPLY_REF` | Bind (step 2) | **Worktree only** — ephemeral `apply-<name>` |
+| `WORK_CHECKOUT` | Bind (step 2) | Git directory where the orchestrator runs |
+| `ACTIVE_CHANGE_ROOT` | Bind (step 2) | `WORK_CHECKOUT` + `CHANGE_ROOT_REL` — **all artifact I/O after bind** |
 
 ## Venue matrix (single source of truth)
 
 After bind, follow the row for `venue` × `parallelism`. Step 2 implements bind; step 6 implements handoff — do not contradict this table elsewhere.
 
-| Venue      | Parallelism          | Main repo branch         | `WORK_CHECKOUT`            | Work ref                       | Handoff                                                               |
-| ---------- | -------------------- | ------------------------ | -------------------------- | ------------------------------ | --------------------------------------------------------------------- |
-| `local`    | `single`             | `ORIGINAL_BRANCH`        | main repo                  | —                              | Return control on `ORIGINAL_BRANCH`                                   |
-| `local`    | `subagent-per-group` | `ORIGINAL_BRANCH`        | main repo                  | group temps optional           | Squash merge → `ORIGINAL_BRANCH`                                      |
-| `worktree` | `single`             | `ORIGINAL_BRANCH`        | worktree on `APPLY_REF`    | `apply-<name>`                 | Squash merge → `ORIGINAL_BRANCH`; remove worktree; delete `APPLY_REF` |
-| `worktree` | `subagent-per-group` | `ORIGINAL_BRANCH`        | worktree on `APPLY_REF`    | `apply-<name>` (+ group temps) | Squash merge → `ORIGINAL_BRANCH`; cleanup                             |
-| `remote`   | agent picks          | `ORIGINAL_BRANCH` (idle) | runner on `FEATURE_BRANCH` | `FEATURE_BRANCH`               | Push; PR `--base ORIGINAL_BRANCH`; link issue                         |
+| Venue | Parallelism | Main repo branch | `WORK_CHECKOUT` | Work ref | Handoff |
+|---|---|---|---|---|---|
+| `local` | `single` | `ORIGINAL_BRANCH` | main repo | — | Return control on `ORIGINAL_BRANCH` |
+| `local` | `subagent-per-group` | `ORIGINAL_BRANCH` | main repo | group temps optional | Squash merge → `ORIGINAL_BRANCH` |
+| `worktree` | `single` | `ORIGINAL_BRANCH` | worktree on `APPLY_REF` | `apply-<name>` | Squash merge → `ORIGINAL_BRANCH`; remove worktree; delete `APPLY_REF` |
+| `worktree` | `subagent-per-group` | `ORIGINAL_BRANCH` | worktree on `APPLY_REF` | `apply-<name>` (+ group temps) | Squash merge → `ORIGINAL_BRANCH`; cleanup |
+| `remote` | agent picks | `ORIGINAL_BRANCH` (idle) | runner on `FEATURE_BRANCH` | `FEATURE_BRANCH` | Push; PR `--base ORIGINAL_BRANCH`; link issue |
 
 Legacy Presets key `workspace` → treat as `venue` when `venue` is absent.
 
@@ -53,14 +53,14 @@ Legacy Presets key `workspace` → treat as `venue` when `venue` is absent.
 
 After bind, paths are under `ACTIVE_CHANGE_ROOT`. Prefer OpenSpec `artifactPaths` / `contextFiles` when set.
 
-| Priority | Source                         | Purpose                                                                                    |
-| -------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
-| HIGH     | `tasks.md`                     | Checkbox progress                                                                          |
-| HIGH     | `specs/**/*.md`                | Scenario → test coverage gate; reconciled in place when shipped behavior diverges (step 3) |
-| HIGH     | `design.md`                    | Design/spec coherence gate                                                                 |
-| MED      | `proposal.md`                  | Changelog scope                                                                            |
-| MED      | `TRACKING` / `tracking.md`     | Issue/PR linkage + resume Presets                                                          |
-| LOW      | `docs/agents/issue-tracker.md` | Issue workflow when present                                                                |
+| Priority | Source | Purpose |
+|---|---|---|
+| HIGH | `tasks.md` | Checkbox progress |
+| HIGH | `specs/**/*.md` | Scenario → test coverage gate; reconciled in place when shipped behavior diverges (step 3) |
+| HIGH | `design.md` | Design/spec coherence gate |
+| MED | `proposal.md` | Changelog scope |
+| MED | `TRACKING` / `tracking.md` | Issue/PR linkage + resume Presets |
+| LOW | `docs/agents/issue-tracker.md` | Issue workflow when present |
 
 **Trusted hint:** `TRACKING_HINT` loaded and its Change equals `CHANGE_ROOT_REL` (legacy: equals `CHANGE_ROOT`). Branch, Issue, PR, and Presets from an untrusted hint are ignored for merge overlay.
 
@@ -77,7 +77,7 @@ After bind, paths are under `ACTIVE_CHANGE_ROOT`. Prefer OpenSpec `artifactPaths
 **Interactive host** — **structured-choices** venue gate (one message; **must run** — a trusted Issue or filled Presets does not skip it):
 
 1. Initialize **`TRACKING`**: copy non-empty `TRACKING_HINT` fields **field-by-field**, **except Branch, Issue, PR, and Presets keys** — copy those only on a **trusted hint**; set **Change** = `CHANGE_ROOT_REL`. Initialize empty **`PRESET_OVERRIDES`**. **Do not write to disk.**
-2. **Venue:** `local` | `worktree` | `remote` → set `TRACKING` Presets → `venue` **and** `PRESET_OVERRIDES` → `venue`.
+2. **Venue:** `local` | `worktree` | `remote` → set `TRACKING` Presets → `venue` **and** `PRESET_OVERRIDES` → `venue`. When presenting the gate for `worktree`, check if `harness-proxy` is installed (`which harness-proxy` or `./bin/harness-proxy`): if present, offer `worktree (harness-proxy)` to delegate isolated group runs to `agents/software-engineer.md`; otherwise standard git worktree applies.
 3. When the OpenSpec adapter set `STORE`, set Presets → `store`; add to `PRESET_OVERRIDES` **only** when `STORE_SOURCE` is `explicit`.
 4. **Parallelism** (agent — not a user gate): choose `single` | `subagent-per-group` using the criteria below; set Presets → `parallelism` and `PRESET_OVERRIDES` → `parallelism`; note one-line rationale in session.
 5. Snapshot **`TRACKING_SETUP`** = copy of `TRACKING`.
@@ -90,11 +90,11 @@ After bind, paths are under `ACTIVE_CHANGE_ROOT`. Prefer OpenSpec `artifactPaths
 
 Choose **`subagent-per-group`** when every row holds; else **`single`**:
 
-| Require                                                       | Rationale                                                                                                                                       |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Two or more numbered implementation `##` groups in `tasks.md` | Enough isolation to earn subagents                                                                                                              |
-| Platform supports Task/subagents                              | No fake parallelism                                                                                                                             |
-| Venue supports git isolation                                  | `local`: orchestrator commits on `ORIGINAL_BRANCH`; `worktree`: group temps under `apply-<name>-<slug>`; `remote`: runner uses `FEATURE_BRANCH` |
+| Require | Rationale |
+|---|---|
+| Two or more numbered implementation `##` groups in `tasks.md` | Enough isolation to earn subagents |
+| Platform supports Task/subagents | No fake parallelism |
+| Venue supports git isolation | `local`: orchestrator commits on `ORIGINAL_BRANCH`; `worktree`: group temps under `apply-<name>-<slug>`; `remote`: runner uses `FEATURE_BRANCH` |
 
 Sequential dispatch only — never concurrent subagents on shared git state.
 
@@ -119,11 +119,11 @@ Optional: invoke a **git worktree skill** when present for naming/cleanup conven
 
 **Bind** — requires Presets → `venue` and `parallelism`. Set `WORK_CHECKOUT`, then `ACTIVE_CHANGE_ROOT = WORK_CHECKOUT + "/" + CHANGE_ROOT_REL`:
 
-| Venue          | Bind                                                                                                                                                                                                                                                                                                                                                           |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`local`**    | Checkout `ORIGINAL_BRANCH` on main → `WORK_CHECKOUT` = main repo                                                                                                                                                                                                                                                                                               |
-| **`worktree`** | Main on `ORIGINAL_BRANCH`. `git worktree add <path> -b APPLY_REF ORIGINAL_BRANCH` (or attach existing clean `APPLY_REF`) → `WORK_CHECKOUT` = worktree path                                                                                                                                                                                                     |
-| **`remote`**   | Main on `ORIGINAL_BRANCH`. Resolve `FEATURE_BRANCH` per **Branch resolution** step 2. Checkout `FEATURE_BRANCH` in worktree or runner checkout; push `-u origin FEATURE_BRANCH` when new. Create **Issue** when empty and `docs/agents/issue-tracker.md` exists. Dispatch cloud/CI runner when platform supports; else orchestrate on `FEATURE_BRANCH` locally |
+| Venue | Bind |
+|---|---|
+| **`local`** | Checkout `ORIGINAL_BRANCH` on main → `WORK_CHECKOUT` = main repo |
+| **`worktree`** | Main on `ORIGINAL_BRANCH`. `git worktree add <path> -b APPLY_REF ORIGINAL_BRANCH` (or attach existing clean `APPLY_REF`) → `WORK_CHECKOUT` = worktree path |
+| **`remote`** | Main on `ORIGINAL_BRANCH`. Resolve `FEATURE_BRANCH` per **Branch resolution** step 2. Checkout `FEATURE_BRANCH` in worktree or runner checkout; push `-u origin FEATURE_BRANCH` when new. Create **Issue** when empty and `docs/agents/issue-tracker.md` exists. Dispatch cloud/CI runner when platform supports; else orchestrate on `FEATURE_BRANCH` locally |
 
 1. **Persist `tracking.md`** at `ACTIVE_CHANGE_ROOT` (reconcile; never wholesale Presets replace).
 2. **Re-read** planning artifacts from `ACTIVE_CHANGE_ROOT`.
@@ -146,7 +146,9 @@ Per implementation task:
 **Parallelism `subagent-per-group`:**
 
 - **`local`:** subagents read `ACTIVE_CHANGE_ROOT`; no git; orchestrator commits on `ORIGINAL_BRANCH`.
-- **`worktree`:** optional group worktrees on `apply-<name>-<slug>`; orchestrator merges into `APPLY_REF`; merge gate (step 4) squash-merges to `ORIGINAL_BRANCH` before verify.
+- **`worktree`:**
+  - **With `harness-proxy` (when available):** For each `##` implementation group, dispatch `harness-proxy run --system-prompt agents/software-engineer.md "<group tasks and related scenarios>"`. The proxy handles isolated worktree provisioning, execution, commit, and auto-merge back into the active branch.
+  - **Without `harness-proxy` (fallback):** Optional group worktrees on `apply-<name>-<slug>`; orchestrator merges into `APPLY_REF`; merge gate (step 4) squash-merges to `ORIGINAL_BRANCH` before verify.
 - **`remote`:** subagents on runner checkout; orchestrator commits on `FEATURE_BRANCH`.
 
 Documentation group: update files from proposal Impact and tasks. Changelog group: invoke **changelog-generator** with `ACTIVE_CHANGE_ROOT` as the change root.
@@ -155,13 +157,13 @@ Documentation group: update files from proposal Impact and tasks. Changelog grou
 
 Delta specs under `ACTIVE_CHANGE_ROOT/specs/**` describe the behavior this change ships. When a design fork is re-resolved mid-apply, apply edits them in place — this is not spec sync, which stays archive-only.
 
-| Divergence                                         | Edit                                                                    |
-| -------------------------------------------------- | ----------------------------------------------------------------------- |
-| Scenario body no longer matches shipped behavior   | Rewrite the steps **and** rename the title to the behavior that shipped |
-| New design supersedes an existing scenario         | Delete the superseded scenario — never leave it beside its replacement  |
-| Two scenarios assert the same behavior             | Keep one                                                                |
-| Requirement wording contradicts its own scenarios  | Rewrite the requirement                                                 |
-| Promoted term no longer describes shipped behavior | Rename or remove the `specs/ubiquitous-language/spec.md` delta entry    |
+| Divergence | Edit |
+|---|---|
+| Scenario body no longer matches shipped behavior | Rewrite the steps **and** rename the title to the behavior that shipped |
+| New design supersedes an existing scenario | Delete the superseded scenario — never leave it beside its replacement |
+| Two scenarios assert the same behavior | Keep one |
+| Requirement wording contradicts its own scenarios | Rewrite the requirement |
+| Promoted term no longer describes shipped behavior | Rename or remove the `specs/ubiquitous-language/spec.md` delta entry |
 
 Superseded titles over rewritten bodies are the common failure — a title naming behavior the `THEN` clauses now forbid. Fix it when the divergence happens; deferring it to archive, to a later phase, or to the user fails the verify gate in step 5.
 
@@ -181,16 +183,16 @@ When `venue` is **`worktree`**, squash to **`ORIGINAL_BRANCH`** before step 5. D
 Run on the **verification ref** at `ACTIVE_CHANGE_ROOT`. Repeat until `/opsx:verify` reports empty **CRITICAL**, **WARNING**, and **SUGGESTION** tiers:
 
 1. **PRECHECK** (fix before hunting if any row fails):
-    - All `tasks.md` checkboxes `[x]` (including Documentation and Changelog)
-    - Canonical test command from `tasks.md` — exit 0; every `#### Scenario:` has a passing named automated test
-    - Lint/format when `tasks.md` or repo docs name commands — zero new warnings from this change
-    - **Adapter validator** — OpenSpec: `openspec validate --all --json` from `PLANNING_HOME` with `--store` when set; Direct: skip unless user requests
-    - Material `design.md` decisions reflected in specs — material drift = FAIL
-    - **Delta specs self-consistent** — every `#### Scenario:` title describes its own GIVEN/WHEN/THEN; no superseded titles, no duplicate scenarios, no requirement contradicting its scenarios (see [Delta spec reconciliation](#delta-spec-reconciliation))
-    - Ubiquitous-language delta entries name behavior this change actually ships
-    - Documentation tasks reflect actual behavior
-    - Changelog task complete
-    - `git status --porcelain` empty on the **verification ref**
+   - All `tasks.md` checkboxes `[x]` (including Documentation and Changelog)
+   - Canonical test command from `tasks.md` — exit 0; every `#### Scenario:` has a passing named automated test
+   - Lint/format when `tasks.md` or repo docs name commands — zero new warnings from this change
+   - **Adapter validator** — OpenSpec: `openspec validate --all --json` from `PLANNING_HOME` with `--store` when set; Direct: skip unless user requests
+   - Material `design.md` decisions reflected in specs — material drift = FAIL
+   - **Delta specs self-consistent** — every `#### Scenario:` title describes its own GIVEN/WHEN/THEN; no superseded titles, no duplicate scenarios, no requirement contradicting its scenarios (see [Delta spec reconciliation](#delta-spec-reconciliation))
+   - Ubiquitous-language delta entries name behavior this change actually ships
+   - Documentation tasks reflect actual behavior
+   - Changelog task complete
+   - `git status --porcelain` empty on the **verification ref**
 2. Run `/opsx:verify` on the verification ref.
 3. On any CRITICAL, WARNING, or SUGGESTION: fix immediately; return to (1). A finding whose recommendation names a later phase ("before archive", "at archive", "the user should") is still apply's to fix when the fix lives in the working tree or under `ACTIVE_CHANGE_ROOT` — restating it is not fixing it.
 4. **Confirmation scorecard** — run `/opsx:verify` again scorecard-only (no new hunting). All three tiers must stay empty.
@@ -201,25 +203,25 @@ Run on the **verification ref** at `ACTIVE_CHANGE_ROOT`. Repeat until `/opsx:ver
 
 **Done when:** verify tiers empty and the venue handoff row below completes.
 
-| Venue          | Parallelism          | Handoff                                                                                                                                                                       |
-| -------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`local`**    | `single`             | Report gate PASS. Main on **`ORIGINAL_BRANCH`**. Return control — no squash. PR only when user asks. Update **Issue** when linked.                                            |
-| **`local`**    | `subagent-per-group` | Squash merge integrated commits onto **`ORIGINAL_BRANCH`**. Delete ephemeral group refs. Return control.                                                                      |
-| **`worktree`** | either               | Merge gate (step 4) already squash-merged **`APPLY_REF`** → **`ORIGINAL_BRANCH`**. `git worktree remove`; `git branch -D APPLY_REF`. Return control on **`ORIGINAL_BRANCH`**. |
-| **`remote`**   | either               | Push **`FEATURE_BRANCH`**. `gh pr create --base ORIGINAL_BRANCH --head FEATURE_BRANCH`. Set `TRACKING` → PR; write `tracking.md`; commit and push. Link PR on **Issue**.      |
+| Venue | Parallelism | Handoff |
+|---|---|---|
+| **`local`** | `single` | Report gate PASS. Main on **`ORIGINAL_BRANCH`**. Return control — no squash. PR only when user asks. Update **Issue** when linked. |
+| **`local`** | `subagent-per-group` | Squash merge integrated commits onto **`ORIGINAL_BRANCH`**. Delete ephemeral group refs. Return control. |
+| **`worktree`** | either | Merge gate (step 4) already squash-merged **`APPLY_REF`** → **`ORIGINAL_BRANCH`**. `git worktree remove`; `git branch -D APPLY_REF`. Return control on **`ORIGINAL_BRANCH`**. |
+| **`remote`** | either | Push **`FEATURE_BRANCH`**. `gh pr create --base ORIGINAL_BRANCH --head FEATURE_BRANCH`. Set `TRACKING` → PR; write `tracking.md`; commit and push. Link PR on **Issue**. |
 
 ## Delegation
 
-| Concern        | Skill                           | Required                          |
-| -------------- | ------------------------------- | --------------------------------- |
-| User gates     | structured-choices              | Venue gate (interactive)          |
-| Tests          | tdd                             | Optional; gate requires green     |
-| Commits        | git-commit                      | Preferred                         |
-| Changelog      | changelog-generator             | Changelog group                   |
-| Review         | code-review                     | Optional                          |
-| Verify         | `/opsx:verify`                  | Blocking last gate before handoff |
-| PR / issue     | gh + issue-tracker doc          | Remote handoff                    |
-| Cloud dispatch | SDK / Task `environment: cloud` | Remote when available             |
+| Concern | Skill | Required |
+|---|---|---|
+| User gates | structured-choices | Venue gate (interactive) |
+| Tests | tdd | Optional; gate requires green |
+| Commits | git-commit | Preferred |
+| Changelog | changelog-generator | Changelog group |
+| Review | code-review | Optional |
+| Verify | `/opsx:verify` | Blocking last gate before handoff |
+| PR / issue | gh + issue-tracker doc | Remote handoff |
+| Cloud dispatch | SDK / Task `environment: cloud` | Remote when available |
 
 ## Invariants
 

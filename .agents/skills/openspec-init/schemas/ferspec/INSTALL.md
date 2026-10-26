@@ -59,22 +59,22 @@ npx skills add fernando-delosrios-sp/skills --skill apply-code-changes
 npx skills add fernando-delosrios-sp/skills --skill setup-matt-pocock-skills
 ```
 
-| Skill                         | Phase          | Invoked by                                                                |
-| ----------------------------- | -------------- | ------------------------------------------------------------------------- |
-| structured-choices            | cross-cutting  | model-invocation; user gates; **install** wires User gates into AGENTS.md |
-| grill-with-docs               | discovery      | schema.yaml                                                               |
-| grilling                      | discovery      | grill-with-docs                                                           |
-| domain-modeling               | discovery      | grill-with-docs; Language format                                          |
-| architecture-decision-records | discovery      | domain-modeling; grill-with-docs ADR side effects                         |
-| gherkin-authoring             | specs          | schema.yaml                                                               |
-| c4-diagram                    | design         | schema.yaml                                                               |
-| git-commit                    | apply, archive | schema.yaml; archive commit (manual fallback if absent)                   |
-| changelog-generator           | tasks, apply   | schema.yaml; apply Changelog group                                        |
-| tdd                           | apply          | schema.yaml                                                               |
-| codebase-design               | apply          | tdd (seam / interface vocabulary)                                         |
-| code-review                   | apply          | tdd (post-implementation review)                                          |
-| apply-code-changes            | apply          | schema.yaml                                                               |
-| setup-matt-pocock-skills      | setup          | user; once after skill install                                            |
+| Skill | Phase | Invoked by |
+|---|---|---|
+| structured-choices | cross-cutting | model-invocation; user gates; **install** wires User gates into AGENTS.md |
+| grill-with-docs | discovery | schema.yaml |
+| grilling | discovery | grill-with-docs |
+| domain-modeling | discovery | grill-with-docs; Language format |
+| architecture-decision-records | discovery | domain-modeling; grill-with-docs ADR side effects |
+| gherkin-authoring | specs | schema.yaml |
+| c4-diagram | design | schema.yaml |
+| git-commit | apply, archive | schema.yaml; archive commit (manual fallback if absent) |
+| changelog-generator | tasks, apply | schema.yaml; apply Changelog group |
+| tdd | apply | schema.yaml |
+| codebase-design | apply | tdd (seam / interface vocabulary) |
+| code-review | apply | tdd (post-implementation review) |
+| apply-code-changes | apply | schema.yaml |
+| setup-matt-pocock-skills | setup | user; once after skill install |
 
 If the user skips skills from this list, note which phases lose skill-backed behavior and which fallbacks apply.
 
@@ -97,10 +97,10 @@ npx skills add fernando-delosrios-sp/skills --skill wayfinder
 npx skills add fernando-delosrios-sp/skills --skill search
 ```
 
-| Skill     | Phase      | Invoked by                                             |
-| --------- | ---------- | ------------------------------------------------------ |
-| wayfinder | pre-change | user; uses grilling + domain-modeling                  |
-| search    | pre-change | wayfinder research tickets (`/research` → investigate) |
+| Skill | Phase | Invoked by |
+|---|---|---|
+| wayfinder | pre-change | user; uses grilling + domain-modeling |
+| search | pre-change | wayfinder research tickets (`/research` → investigate) |
 
 ## Verify (openspec-init step 6, after step 5)
 

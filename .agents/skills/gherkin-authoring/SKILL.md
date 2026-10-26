@@ -2,6 +2,7 @@
 name: gherkin-authoring
 description: Gherkin acceptance criteria authoring.
 allowed-tools: Read, Glob, Grep, Write, Edit
+disable-model-invocation: true
 ---
 
 # Gherkin Authoring

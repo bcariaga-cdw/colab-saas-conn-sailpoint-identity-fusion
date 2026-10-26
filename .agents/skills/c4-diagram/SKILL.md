@@ -1,6 +1,7 @@
 ---
 name: c4-diagram
 description: C4 Container diagrams as editable .drawio XML files.
+disable-model-invocation: true
 ---
 
 # C4 Container Diagram Generator

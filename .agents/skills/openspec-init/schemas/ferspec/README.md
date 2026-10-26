@@ -37,14 +37,14 @@ Autonomous only: tracking.md (created at apply start)
 Archive: manual via /opsx:archive — never part of apply
 ```
 
-| Artifact     | Role                                                  | Skill                                                     |
-| ------------ | ----------------------------------------------------- | --------------------------------------------------------- |
-| discovery.md | Scope, Language, Decisions, Open questions, Scenarios | grill-with-docs → grilling + domain-modeling              |
-| proposal.md  | Why, capabilities, impact                             | Extract from discovery                                    |
-| design.md    | Structured architecture                               | Extract from discovery; c4-diagram when 3+ containers     |
-| specs/**     | Gherkin delta specs                                   | gherkin-authoring; promote Language → ubiquitous-language |
-| tasks.md     | Checkboxes + Documentation + Changelog                | Mandatory; apply tracks this file                         |
-| tracking.md  | Issue ↔ change ↔ branch ↔ PR                          | Autonomous apply only                                     |
+| Artifact | Role | Skill |
+|---|---|---|
+| discovery.md | Scope, Language, Decisions, Open questions, Scenarios | grill-with-docs → grilling + domain-modeling |
+| proposal.md | Why, capabilities, impact | Extract from discovery |
+| design.md | Structured architecture | Extract from discovery; c4-diagram when 3+ containers |
+| specs/** | Gherkin delta specs | gherkin-authoring; promote Language → ubiquitous-language |
+| tasks.md | Checkboxes + Documentation + Changelog | Mandatory; apply tracks this file |
+| tracking.md | Issue ↔ change ↔ branch ↔ PR | Autonomous apply only |
 
 Promoted Language terms → ubiquitous-language delta during specs phase; canonical
 `openspec/specs/ubiquitous-language/spec.md` at archive — not in discovery or repo-root CONTEXT.md.
@@ -55,9 +55,9 @@ Promoted Language terms → ubiquitous-language delta during specs phase; canoni
 
 ### Direct PR (skip opsx)
 
-| Scenario                                                                           | Use opsx?    |
-| ---------------------------------------------------------------------------------- | ------------ |
-| New feature / capability / architectural / breaking change                         | ✅ Yes       |
+| Scenario | Use opsx? |
+|---|---|
+| New feature / capability / architectural / breaking change | ✅ Yes |
 | Bug fix (no contract change) / test backfill / linter / typo / docs / config tweak | ❌ Direct PR |
 
 ### Verbal discovery → opsx
@@ -112,11 +112,11 @@ Load advisory steps first:
 openspec instructions archive --change "<name>" --json
 ```
 
-| Sub-step | Action                                                                                                                                                                                                                                                                                                                      |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A**    | Built-in `/opsx:archive` steps 1–5: artifact/task checks, delta spec sync assessment, sync if chosen, move to `openspec/changes/archive/YYYY-MM-DD-<name>/`                                                                                                                                                                 |
-| **B**    | **Commit archive output** (required — CLI does NOT commit): `git status --porcelain` → if non-empty, stage `openspec/specs/` + `openspec/changes/` (+ any sync paths) → invoke **git-commit** via Skill tool, or conventional commit manually if skill absent (e.g. `docs(openspec): archive <change-name> and sync specs`) |
-| **C**    | **Post-commit gate** (blocking): `git status --porcelain` empty; when change is under `archive/`, confirm latest commit includes synced specs and archive folder: `git log -1 --name-only -- openspec/specs/ openspec/changes/archive/`                                                                                     |
+| Sub-step | Action |
+|---|---|
+| **A** | Built-in `/opsx:archive` steps 1–5: artifact/task checks, delta spec sync assessment, sync if chosen, move to `openspec/changes/archive/YYYY-MM-DD-<name>/` |
+| **B** | **Commit archive output** (required — CLI does NOT commit): `git status --porcelain` → if non-empty, stage `openspec/specs/` + `openspec/changes/` (+ any sync paths) → invoke **git-commit** via Skill tool, or conventional commit manually if skill absent (e.g. `docs(openspec): archive <change-name> and sync specs`) |
+| **C** | **Post-commit gate** (blocking): `git status --porcelain` empty; when change is under `archive/`, confirm latest commit includes synced specs and archive folder: `git log -1 --name-only -- openspec/specs/ openspec/changes/archive/` |
 
 > Skipping **B** because `git-commit` is missing is a schema violation — use the manual fallback instead.
 
@@ -124,40 +124,40 @@ openspec instructions archive --change "<name>" --json
 
 ## Skills map
 
-| Concern           | Skill                                      | Notes                                                      |
-| ----------------- | ------------------------------------------ | ---------------------------------------------------------- |
-| Discovery         | grill-with-docs, grilling, domain-modeling | Language → discovery.md                                    |
-| Design            | c4-diagram                                 | Optional; 3+ containers                                    |
-| Specs             | gherkin-authoring                          | Gherkin delta specs                                        |
-| Apply             | apply-code-changes                         | **Required for full apply UX**; schema has fallback        |
-| Verify            | `/opsx:verify`                             | Blocking last gate inside apply before handoff             |
-| TDD               | tdd                                        | Optional invoke; gate requires tests green                 |
-| Commits           | git-commit                                 | Apply + archive commit (archive manual fallback if absent) |
-| Changelog         | changelog-generator                        | During apply                                               |
-| PR (remote venue) | gh / issue-tracker doc                     | Via apply-code-changes                                     |
+| Concern | Skill | Notes |
+|---|---|---|
+| Discovery | grill-with-docs, grilling, domain-modeling | Language → discovery.md |
+| Design | c4-diagram | Optional; 3+ containers |
+| Specs | gherkin-authoring | Gherkin delta specs |
+| Apply | apply-code-changes | **Required for full apply UX**; schema has fallback |
+| Verify | `/opsx:verify` | Blocking last gate inside apply before handoff |
+| TDD | tdd | Optional invoke; gate requires tests green |
+| Commits | git-commit | Apply + archive commit (archive manual fallback if absent) |
+| Changelog | changelog-generator | During apply |
+| PR (remote venue) | gh / issue-tracker doc | Via apply-code-changes |
 
 ---
 
 ## CLI cheat sheet
 
-| Scenario                                | Command                                                                               |
-| --------------------------------------- | ------------------------------------------------------------------------------------- |
-| New change                              | `/opsx:new <name> --schema ferspec`                                                   |
-| One-shot planning                       | `/opsx:ff <name> --schema ferspec`                                                    |
-| Continue planning                       | `/opsx:continue <name>`                                                               |
-| Implement                               | `/opsx:apply <name>`                                                                  |
-| Re-run verify after interruption        | `/opsx:verify <name>` (non-empty tiers → return to apply)                             |
-| Archive (manual — sync + move + commit) | `/opsx:archive <name>`                                                                |
-| Validate                                | `openspec validate --all --json` (cwd `planningHome.root`; append `--store` when set) |
+| Scenario | Command |
+|---|---|
+| New change | `/opsx:new <name> --schema ferspec` |
+| One-shot planning | `/opsx:ff <name> --schema ferspec` |
+| Continue planning | `/opsx:continue <name>` |
+| Implement | `/opsx:apply <name>` |
+| Re-run verify after interruption | `/opsx:verify <name>` (non-empty tiers → return to apply) |
+| Archive (manual — sync + move + commit) | `/opsx:archive <name>` |
+| Validate | `openspec validate --all --json` (cwd `planningHome.root`; append `--store` when set) |
 
 ---
 
 ## Versioning
 
-| Identifier     | Where                     | Meaning                                     |
-| -------------- | ------------------------- | ------------------------------------------- |
-| Schema major   | `schema.yaml: version: 1` | Graph contract — breaking changes bump this |
-| Bundle release | [VERSION](./VERSION)      | SemVer of this bundle                       |
+| Identifier | Where | Meaning |
+|---|---|---|
+| Schema major | `schema.yaml: version: 1` | Graph contract — breaking changes bump this |
+| Bundle release | [VERSION](./VERSION) | SemVer of this bundle |
 
 Current bundle: **1.3.0**
 
@@ -166,8 +166,8 @@ Current bundle: **1.3.0**
 ## Compatibility
 
 | ferspec | OpenSpec CLI | Baseline as of |
-| ------- | ------------ | -------------- |
-| v1      | ≥ 1.4.1      | 2026-08-16     |
+|---|---|---|
+| v1 | ≥ 1.4.1 | 2026-08-16 |
 
 ---
 

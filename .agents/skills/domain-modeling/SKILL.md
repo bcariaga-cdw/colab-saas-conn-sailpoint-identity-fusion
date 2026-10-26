@@ -1,6 +1,7 @@
 ---
 name: domain-modeling
 description: Build and sharpen a project's domain model.
+disable-model-invocation: true
 ---
 
 # Domain Modeling
