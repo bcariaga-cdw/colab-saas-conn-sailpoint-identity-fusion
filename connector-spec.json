@@ -646,7 +646,7 @@
                                             "key": "trim",
                                             "label": "Trim leading and trailing spaces?",
                                             "type": "toggle",
-                                            "helpKey": "Remove extra spaces at the beginning and end of the defined value."
+                                            "helpKey": "Remove leading and trailing whitespace from the defined value, including spaces, tabs, newlines, and carriage returns."
                                         },
                                         {
                                             "key": "maxLength",
@@ -776,7 +776,7 @@
                                             "key": "trim",
                                             "label": "Trim leading and trailing spaces?",
                                             "type": "toggle",
-                                            "helpKey": "Remove extra spaces at the beginning and end of the defined value."
+                                            "helpKey": "Remove leading and trailing whitespace from the defined value, including spaces, tabs, newlines, and carriage returns."
                                         },
                                         {
                                             "key": "maxLength",
