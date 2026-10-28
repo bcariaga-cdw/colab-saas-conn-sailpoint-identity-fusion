@@ -39,6 +39,13 @@ Feature: Identity-origin orphan detection
 - **WHEN** the aggregation processes the account
 - **THEN** the account is marked `orphan`
 
+#### Scenario: Record-source accounts do not keep a Fusion account from becoming orphan
+- **GIVEN** a Fusion account was created from a managed source account
+- **AND** the only managed source accounts left on it come from record sources
+- **WHEN** the aggregation processes the account
+- **THEN** the account is marked `orphan`
+- **AND** `deleteEmpty` removes it from aggregation output when enabled
+
 #### Scenario: Single-account read detects out-of-scope origin identity
 - **GIVEN** a Fusion account was created from identity `idn-1`
 - **AND** `idn-1` is not present in the configured identity scope

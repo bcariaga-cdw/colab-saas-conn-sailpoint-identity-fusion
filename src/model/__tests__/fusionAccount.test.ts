@@ -908,6 +908,57 @@ describe('FusionAccount', () => {
 
             expect(acc.collections.statuses.isOrphan()).toBe(false)
         })
+
+        describe('record-source accounts do not retain', () => {
+            const crmAccount = {
+                id: 'isc-crm-1',
+                sourceId: 'src-crm',
+                sourceName: 'CRM',
+                nativeIdentity: 'rec-1',
+                attributes: {},
+            } as unknown as Account
+            const hrAccount = {
+                id: 'isc-hr-1',
+                sourceId: 'src-hr',
+                sourceName: 'HR',
+                nativeIdentity: 'hr-1',
+                attributes: {},
+            } as unknown as Account
+
+            const persistedWith = (accounts: string[]) =>
+                FusionAccount.fromFusionAccount({
+                    nativeIdentity: 'fusion-rec',
+                    id: 'isc-rec',
+                    name: 'Persisted Account',
+                    sourceName: 'Identity Fusion NG',
+                    attributes: { accounts },
+                } as unknown as Account)
+
+            beforeEach(() => FusionAccount.configure(aliasConfig))
+            afterEach(() => FusionAccount.configure(minimalConfig))
+
+            it('marks managed-origin account orphan when only record-source accounts remain', () => {
+                const acc = persistedWith(['src-crm::rec-1'])
+                const run = new FusionRun()
+                run.managedAccountsById.set('src-crm::rec-1', crmAccount)
+
+                acc.addManagedAccountLayer(run)
+
+                expect(acc.accountIds).toContain('src-crm::rec-1')
+                expect(acc.collections.statuses.isOrphan()).toBe(true)
+            })
+
+            it('does not mark orphan when a non-record source account remains', () => {
+                const acc = persistedWith(['src-crm::rec-1', 'src-hr::hr-1'])
+                const run = new FusionRun()
+                run.managedAccountsById.set('src-crm::rec-1', crmAccount)
+                run.managedAccountsById.set('src-hr::hr-1', hrAccount)
+
+                acc.addManagedAccountLayer(run)
+
+                expect(acc.collections.statuses.isOrphan()).toBe(false)
+            })
+        })
     })
 
     describe('pruneDeletedManagedAccounts', () => {

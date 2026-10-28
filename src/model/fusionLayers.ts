@@ -13,7 +13,7 @@ import {
     normalizeCompositeManagedAccountKey,
     parseManagedAccountKey,
 } from './managedAccountKey'
-import { IDENTITIES_SOURCE_NAME } from './fusionAccount'
+import { FusionAccount, IDENTITIES_SOURCE_NAME } from './fusionAccount'
 import { FusionMatch } from '../services/matchingService'
 import { getManagedAccountSnapshotKey } from '../utils/velocityAccountSnapshot'
 import type { FusionCollections } from './fusionCollections'
@@ -272,7 +272,11 @@ export class FusionLayers {
 
         this.preserveMissingAccountContext(workQueue.managedAccountInventory)
 
-        if (this.collections.accountIds.size === 0) {
+        // Record-source accounts never retain a Fusion account.
+        const hasRetainingAccount = [...this.collections.accountIds].some(
+            (id) => !this.isRecordSourceAccount(id, workQueue.managedAccountInventory)
+        )
+        if (!hasRetainingAccount) {
             const fromIdentity = isIdentityOriginFusionAccount(
                 this.originSourceValue,
                 attributeBag.current,
@@ -703,6 +707,13 @@ export class FusionLayers {
                 schema: { id: nativeId },
             })
         }
+    }
+
+    /** Unknown or untyped sources count as retaining, so missing info never orphans an account. */
+    private isRecordSourceAccount(accountId: string, inventory: ReadonlyMap<string, ManagedAccountInfo>): boolean {
+        const sourceName =
+            this.collections.managedAccountInfo.get(accountId)?.source.name ?? inventory.get(accountId)?.sourceName
+        return FusionAccount.configuredSourceType(sourceName) === SourceType.Record
     }
 
     private pruneDeletedManagedAccounts(inventory: ReadonlyMap<string, ManagedAccountInfo>): void {
